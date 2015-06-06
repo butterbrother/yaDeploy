@@ -4,7 +4,7 @@ package org.butterbrother.yadeploy;
  * Запуск начинается здесь
  */
 public class start
-    implements staticValues{
+        implements staticValues {
     public static void main(String args[]) {
         // Считываем файл конфигурации и обрабатыватываем аргументы командной строки
         configStorage settings = configStorage.initialize(args);
@@ -18,6 +18,12 @@ public class start
                 break;
             case WORK_MODE_HELP:
                 // Отображаем справку
+                for (String line : helpList)
+                    System.out.println(line);
+                System.exit(EXIT_NORMAL);
+                break;
+            case WORK_MODE_BACKUP:
+                // Создаём бекап текущего приложения
         }
     }
 }

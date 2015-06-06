@@ -20,8 +20,8 @@ public class selectItem {
      * @param startPosition Начальная позиция
      * @param mask          Маска файла, согласно Java Regexp
      * @param dirOnly       Отображать только каталоги
-     * @return              Выбор пользователя либо null, если пользователь отказался
-     * @throws IOException  Сбой выбора файла
+     * @return Выбор пользователя либо null, если пользователь отказался
+     * @throws IOException Сбой выбора файла
      */
     public static Path selectFile(String startPosition, String mask, boolean dirOnly) throws IOException {
         // Создаём объект начальной позиции обзора файлов
@@ -32,7 +32,7 @@ public class selectItem {
 
         navPath = navPath.toAbsolutePath();
         // Если указан файл - получаем его вышестоящую директорию
-        if ( ! Files.isDirectory(navPath))
+        if (!Files.isDirectory(navPath))
             navPath = navPath.getParent();
 
         Formatter listEl = new Formatter(System.out); // Вспомогательный форматтер
@@ -130,10 +130,10 @@ public class selectItem {
             String userInput = input.readLine();
             switch (userInput) {
                 // Текущий каталог
-                case "o" :
+                case "o":
                     return navPath;
                 // Выход, вернём null
-                case "q" :
+                case "q":
                     return null;
                 // На уровень вверх
                 case "u":
@@ -160,7 +160,7 @@ public class selectItem {
                         // Получаем файл-путь из перечисления. Может быть null
                         navPath = itemList.get(numItem) != null ? itemList.get(numItem) : navPath;
                         // Если выбран файл - вернём в итоге файл
-                        if (! Files.isDirectory(navPath))
+                        if (!Files.isDirectory(navPath))
                             return navPath;
                         // Иначе продолжим обзор
                     } catch (NumberFormatException | IndexOutOfBoundsException err) {
