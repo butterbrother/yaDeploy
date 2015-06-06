@@ -294,17 +294,19 @@ public class configStorage
     private Path getDirectoryPath(String name, String details)
             throws ParameterNotFoundException, FileNotFoundException, IncompatibleFileType {
         // Создаём путь
-        Path backupDirectory = Paths.get(name);
+        Path directoryPath = Paths.get(name);
         // Получаем абсолютный путь для возможности проверки
-        backupDirectory = backupDirectory.toAbsolutePath();
+        directoryPath = directoryPath.toAbsolutePath();
         // Проверяем на существование
-        if (Files.notExists(backupDirectory))
-            throw new FileNotFoundException(details + backupDirectory.getFileName() + " not found");
+        if (Files.notExists(directoryPath)) {
+            throw new FileNotFoundException(details + directoryPath.getFileName() + " not found");
+        }
         // И что путь действительно каталог
-        if (Files.isDirectory(backupDirectory))
-            return backupDirectory;
-        else
+        if (Files.isDirectory(directoryPath)) {
+            return directoryPath;
+        } else {
             throw new IncompatibleFileType("directory", "file");
+        }
     }
 
     /**
@@ -327,9 +329,10 @@ public class configStorage
                 // Если искомая секция найдена - так же перебираем имена параметров
                 // в сеции
                 for (String parameter : this.get(section).keySet()) {
-                    if (parameter.equalsIgnoreCase(parameter))
+                    if (parameter.equalsIgnoreCase(parameterName)) {
                         // Возвращаем значение параметра
                         return this.get(section).get(parameter);
+                    }
                 }
             }
         }
