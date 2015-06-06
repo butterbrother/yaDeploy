@@ -22,6 +22,7 @@ public interface staticValues {
     int EXIT_NORMAL = 0;        // Нормальное завершение
     int EXIT_CONFIG_ERROR = 1;  // Ошибка чтения и обработки файла конфигурации
     int EXIT_BACKUP_CHECK_ERROR = 2;    // Ошибка при проверке на возможность бекапа
+    int EXIT_BACKUP_ERROR = 3;  // Ошибка выполнения бекапа
 
     /*
      * Настройки в ini-файле

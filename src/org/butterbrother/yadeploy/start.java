@@ -24,7 +24,9 @@ public class start
                 break;
             case WORK_MODE_BACKUP:
                 // Создаём бекап текущего приложения
-                ticket ready = ticket.getBackupAllow(settings);
+                targetedAction.doBackup(settings, ticket.getBackupAllow(settings));
+                System.exit(EXIT_NORMAL);
+                break;
         }
     }
 }
