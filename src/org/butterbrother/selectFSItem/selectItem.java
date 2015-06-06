@@ -10,49 +10,49 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Осуществляет навигацию в консоли, выборку файлов
+ * РћСЃСѓС‰РµСЃС‚РІР»СЏРµС‚ РЅР°РІРёРіР°С†РёСЋ РІ РєРѕРЅСЃРѕР»Рё, РІС‹Р±РѕСЂРєСѓ С„Р°Р№Р»РѕРІ
  */
 public class selectItem {
 
     /**
-     * Выбор объекта (файловая навигация)
+     * Р’С‹Р±РѕСЂ РѕР±СЉРµРєС‚Р° (С„Р°Р№Р»РѕРІР°СЏ РЅР°РІРёРіР°С†РёСЏ)
      *
-     * @param startPosition Начальная позиция
-     * @param mask          Маска файла, согласно Java Regexp
-     * @param dirOnly       Отображать только каталоги
-     * @return Выбор пользователя либо null, если пользователь отказался
-     * @throws IOException Сбой выбора файла
+     * @param startPosition РќР°С‡Р°Р»СЊРЅР°СЏ РїРѕР·РёС†РёСЏ
+     * @param mask          РњР°СЃРєР° С„Р°Р№Р»Р°, СЃРѕРіР»Р°СЃРЅРѕ Java Regexp
+     * @param dirOnly       РћС‚РѕР±СЂР°Р¶Р°С‚СЊ С‚РѕР»СЊРєРѕ РєР°С‚Р°Р»РѕРіРё
+     * @return Р’С‹Р±РѕСЂ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ Р»РёР±Рѕ null, РµСЃР»Рё РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ РѕС‚РєР°Р·Р°Р»СЃСЏ
+     * @throws IOException РЎР±РѕР№ РІС‹Р±РѕСЂР° С„Р°Р№Р»Р°
      */
     public static Path selectFile(String startPosition, String mask, boolean dirOnly) throws IOException {
-        // Создаём объект начальной позиции обзора файлов
+        // РЎРѕР·РґР°С‘Рј РѕР±СЉРµРєС‚ РЅР°С‡Р°Р»СЊРЅРѕР№ РїРѕР·РёС†РёРё РѕР±Р·РѕСЂР° С„Р°Р№Р»РѕРІ
         Path navPath = Paths.get(startPosition);
-        // Вылетаем с исключением, если такого нет
+        // Р’С‹Р»РµС‚Р°РµРј СЃ РёСЃРєР»СЋС‡РµРЅРёРµРј, РµСЃР»Рё С‚Р°РєРѕРіРѕ РЅРµС‚
         if (Files.notExists(navPath))
             throw new IOException("File not exists");
 
         navPath = navPath.toAbsolutePath();
-        // Если указан файл - получаем его вышестоящую директорию
+        // Р•СЃР»Рё СѓРєР°Р·Р°РЅ С„Р°Р№Р» - РїРѕР»СѓС‡Р°РµРј РµРіРѕ РІС‹С€РµСЃС‚РѕСЏС‰СѓСЋ РґРёСЂРµРєС‚РѕСЂРёСЋ
         if (!Files.isDirectory(navPath))
             navPath = navPath.getParent();
 
-        Formatter listEl = new Formatter(System.out); // Вспомогательный форматтер
-        Date fileDate = new Date();           // И дата для отображения даты файлов
-        Console input = System.console();       // Пользовательский ввод
-        // Отсюда начинаем навигацию
+        Formatter listEl = new Formatter(System.out); // Р’СЃРїРѕРјРѕРіР°С‚РµР»СЊРЅС‹Р№ С„РѕСЂРјР°С‚С‚РµСЂ
+        Date fileDate = new Date();           // Р РґР°С‚Р° РґР»СЏ РѕС‚РѕР±СЂР°Р¶РµРЅРёСЏ РґР°С‚С‹ С„Р°Р№Р»РѕРІ
+        Console input = System.console();       // РџРѕР»СЊР·РѕРІР°С‚РµР»СЊСЃРєРёР№ РІРІРѕРґ
+        // РћС‚СЃСЋРґР° РЅР°С‡РёРЅР°РµРј РЅР°РІРёРіР°С†РёСЋ
         do {
-            listEl.format("\n< %s >\n", navPath.toAbsolutePath().toString()); // Отображаем текущий каталог
-            // Приглашение
+            listEl.format("\n< %s >\n", navPath.toAbsolutePath().toString()); // РћС‚РѕР±СЂР°Р¶Р°РµРј С‚РµРєСѓС‰РёР№ РєР°С‚Р°Р»РѕРі
+            // РџСЂРёРіР»Р°С€РµРЅРёРµ
             if (dirOnly) {
                 listEl.format("Select directory:\n");
             } else {
                 listEl.format("Select file or directory:\n");
             }
 
-            // Список элементов в каталоге
+            // РЎРїРёСЃРѕРє СЌР»РµРјРµРЅС‚РѕРІ РІ РєР°С‚Р°Р»РѕРіРµ
             LinkedHashMap<Integer, Path> itemList = new LinkedHashMap<>();
-            int count = 0;  // Для перечисления элементов
+            int count = 0;  // Р”Р»СЏ РїРµСЂРµС‡РёСЃР»РµРЅРёСЏ СЌР»РµРјРµРЅС‚РѕРІ
             try (DirectoryStream<Path> list = Files.newDirectoryStream(navPath, new dirStreamFilter<>(mask, dirOnly))) {
-                // Заполняем список из текущего каталога
+                // Р—Р°РїРѕР»РЅСЏРµРј СЃРїРёСЃРѕРє РёР· С‚РµРєСѓС‰РµРіРѕ РєР°С‚Р°Р»РѕРіР°
                 for (Path item : list)
                     itemList.put(++count, item);
             } catch (DirectoryIteratorException ignore) {
@@ -62,32 +62,32 @@ public class selectItem {
             }
 
 
-            // Отображаем список с перечислениями элементов
+            // РћС‚РѕР±СЂР°Р¶Р°РµРј СЃРїРёСЃРѕРє СЃ РїРµСЂРµС‡РёСЃР»РµРЅРёСЏРјРё СЌР»РµРјРµРЅС‚РѕРІ
             listEl.format("%3s  %-30s  %5s  %16s  %16s \n", "NUM", "File Name", "Attr", "Created", "Modified");
             if (itemList.size() == 0)
                 listEl.format("<Empty>\n");
             for (Map.Entry<Integer, Path> item : itemList.entrySet()) {
                 try {
-                    // Отображаем номер и имя файла
+                    // РћС‚РѕР±СЂР°Р¶Р°РµРј РЅРѕРјРµСЂ Рё РёРјСЏ С„Р°Р№Р»Р°
                     listEl.format("%3d  %-30s  ", item.getKey(), item.getValue().getFileName().toString());
 
-                    // Считываем атрибуты
+                    // РЎС‡РёС‚С‹РІР°РµРј Р°С‚СЂРёР±СѓС‚С‹
                     BasicFileAttributes attr = Files.readAttributes(item.getValue(), BasicFileAttributes.class);
 
-                    // И по-очереди их выводим
-                    // Тип файла
+                    // Р РїРѕ-РѕС‡РµСЂРµРґРё РёС… РІС‹РІРѕРґРёРј
+                    // РўРёРї С„Р°Р№Р»Р°
                     if (attr.isDirectory())
-                        listEl.format("d");    // Каталог
+                        listEl.format("d");    // РљР°С‚Р°Р»РѕРі
                     else if (attr.isRegularFile())
-                        listEl.format("-");    // Файл
+                        listEl.format("-");    // Р¤Р°Р№Р»
                     else if (attr.isSymbolicLink())
-                        listEl.format("l");    // Симлинк
+                        listEl.format("l");    // РЎРёРјР»РёРЅРє
                     else if (attr.isOther())
-                        listEl.format("o");    // Прочее
+                        listEl.format("o");    // РџСЂРѕС‡РµРµ
                     else
-                        listEl.format("u");    // Неизвестный тип
+                        listEl.format("u");    // РќРµРёР·РІРµСЃС‚РЅС‹Р№ С‚РёРї
 
-                    // Права
+                    // РџСЂР°РІР°
                     if (Files.isReadable(item.getValue())) {
                         listEl.format("r");
                     } else {
@@ -110,32 +110,32 @@ public class selectItem {
                     }
                     listEl.format("  ");
 
-                    // Дата создания
+                    // Р”Р°С‚Р° СЃРѕР·РґР°РЅРёСЏ
                     fileDate.setTime(attr.creationTime().toMillis());
                     listEl.format("%TY-%<Tm-%<Td %<TH:%<TM  ", fileDate);
 
-                    // Дата модификации
+                    // Р”Р°С‚Р° РјРѕРґРёС„РёРєР°С†РёРё
                     fileDate.setTime(attr.lastModifiedTime().toMillis());
                     listEl.format("%TY-%<Tm-%<Td %<TH:%<TM  ", fileDate);
 
-                    // Перенос строки в конце
+                    // РџРµСЂРµРЅРѕСЃ СЃС‚СЂРѕРєРё РІ РєРѕРЅС†Рµ
                     listEl.format("\n");
                 } catch (IOException attrErr) {
                     listEl.format("<Access denied>\n");
                 }
             }
 
-            // Далее предлагаем выбор элементов
+            // Р”Р°Р»РµРµ РїСЂРµРґР»Р°РіР°РµРј РІС‹Р±РѕСЂ СЌР»РµРјРµРЅС‚РѕРІ
             listEl.format("Enter number, \"o\" to select current directory, \"u\" or \"..\" switch to parent directory, \"m\" to manual enter, or \"q\" to exit >> ");
             String userInput = input.readLine();
             switch (userInput) {
-                // Текущий каталог
+                // РўРµРєСѓС‰РёР№ РєР°С‚Р°Р»РѕРі
                 case "o":
                     return navPath;
-                // Выход, вернём null
+                // Р’С‹С…РѕРґ, РІРµСЂРЅС‘Рј null
                 case "q":
                     return null;
-                // На уровень вверх
+                // РќР° СѓСЂРѕРІРµРЅСЊ РІРІРµСЂС…
                 case "u":
                 case "..":
                     if ((navPath.getParent() == null)) {
@@ -144,7 +144,7 @@ public class selectItem {
                         navPath = navPath.getParent();
                     }
                     break;
-                // Указание пути вручную
+                // РЈРєР°Р·Р°РЅРёРµ РїСѓС‚Рё РІСЂСѓС‡РЅСѓСЋ
                 case "m":
                     listEl.format("Enter path >> ");
                     Path manualPath = Paths.get(input.readLine()).toAbsolutePath();
@@ -157,12 +157,12 @@ public class selectItem {
                 default:
                     try {
                         int numItem = Integer.parseInt(userInput);
-                        // Получаем файл-путь из перечисления. Может быть null
+                        // РџРѕР»СѓС‡Р°РµРј С„Р°Р№Р»-РїСѓС‚СЊ РёР· РїРµСЂРµС‡РёСЃР»РµРЅРёСЏ. РњРѕР¶РµС‚ Р±С‹С‚СЊ null
                         navPath = itemList.get(numItem) != null ? itemList.get(numItem) : navPath;
-                        // Если выбран файл - вернём в итоге файл
+                        // Р•СЃР»Рё РІС‹Р±СЂР°РЅ С„Р°Р№Р» - РІРµСЂРЅС‘Рј РІ РёС‚РѕРіРµ С„Р°Р№Р»
                         if (!Files.isDirectory(navPath))
                             return navPath;
-                        // Иначе продолжим обзор
+                        // РРЅР°С‡Рµ РїСЂРѕРґРѕР»Р¶РёРј РѕР±Р·РѕСЂ
                     } catch (NumberFormatException | IndexOutOfBoundsException err) {
                         listEl.format("Nope, try again, bro\n");
                     }

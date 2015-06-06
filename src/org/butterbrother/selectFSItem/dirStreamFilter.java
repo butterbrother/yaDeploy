@@ -7,7 +7,7 @@ import java.nio.file.Path;
 import java.util.regex.Pattern;
 
 /**
- * Фильтрация списка
+ * Р¤РёР»СЊС‚СЂР°С†РёСЏ СЃРїРёСЃРєР°
  */
 public class dirStreamFilter<T extends Path>
         implements DirectoryStream.Filter<T> {
@@ -15,12 +15,12 @@ public class dirStreamFilter<T extends Path>
     private String filter;
 
     /**
-     * Инициализация фильтра с фильтрацией по
-     * имени файла/расширения
+     * РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ С„РёР»СЊС‚СЂР° СЃ С„РёР»СЊС‚СЂР°С†РёРµР№ РїРѕ
+     * РёРјРµРЅРё С„Р°Р№Р»Р°/СЂР°СЃС€РёСЂРµРЅРёСЏ
      *
-     * @param filter  Фильтр
-     * @param dirOnly Флаг - только каталоги,
-     *                параметр фильтра будет игнорироваться
+     * @param filter  Р¤РёР»СЊС‚СЂ
+     * @param dirOnly Р¤Р»Р°Рі - С‚РѕР»СЊРєРѕ РєР°С‚Р°Р»РѕРіРё,
+     *                РїР°СЂР°РјРµС‚СЂ С„РёР»СЊС‚СЂР° Р±СѓРґРµС‚ РёРіРЅРѕСЂРёСЂРѕРІР°С‚СЊСЃСЏ
      */
     public dirStreamFilter(String filter, boolean dirOnly) {
         this.dirOnly = dirOnly;
@@ -28,22 +28,22 @@ public class dirStreamFilter<T extends Path>
     }
 
     /**
-     * Сама фильтрация
+     * РЎР°РјР° С„РёР»СЊС‚СЂР°С†РёСЏ
      *
-     * @param entry Элемент - файл либо каталог
-     * @return Пропуск фильтра
+     * @param entry Р­Р»РµРјРµРЅС‚ - С„Р°Р№Р» Р»РёР±Рѕ РєР°С‚Р°Р»РѕРі
+     * @return РџСЂРѕРїСѓСЃРє С„РёР»СЊС‚СЂР°
      * @throws IOException
      */
     @Override
     public boolean accept(T entry) throws IOException {
-        // Всегда пропускаем каталоги
+        // Р’СЃРµРіРґР° РїСЂРѕРїСѓСЃРєР°РµРј РєР°С‚Р°Р»РѕРіРё
         if (Files.isDirectory(entry)) return true;
-        // Режим - только каталоги, не пропускаем файлы
+        // Р РµР¶РёРј - С‚РѕР»СЊРєРѕ РєР°С‚Р°Р»РѕРіРё, РЅРµ РїСЂРѕРїСѓСЃРєР°РµРј С„Р°Р№Р»С‹
         if (dirOnly && !Files.isDirectory(entry)) return false;
-        // Если фильтр - все файлы, то пропускаем все
+        // Р•СЃР»Рё С„РёР»СЊС‚СЂ - РІСЃРµ С„Р°Р№Р»С‹, С‚Рѕ РїСЂРѕРїСѓСЃРєР°РµРј РІСЃРµ
         if (filter.equals("*")) return true;
 
-        // Получаем имя файла и проверяем по маске
+        // РџРѕР»СѓС‡Р°РµРј РёРјСЏ С„Р°Р№Р»Р° Рё РїСЂРѕРІРµСЂСЏРµРј РїРѕ РјР°СЃРєРµ
         return Pattern.compile(filter, Pattern.CASE_INSENSITIVE).matcher(entry.getFileName().toString()).matches();
     }
 }

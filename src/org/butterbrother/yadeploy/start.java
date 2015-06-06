@@ -1,29 +1,30 @@
 package org.butterbrother.yadeploy;
 
 /**
- * Запуск начинается здесь
+ * Р—Р°РїСѓСЃРє РЅР°С‡РёРЅР°РµС‚СЃСЏ Р·РґРµСЃСЊ
  */
 public class start
         implements staticValues {
     public static void main(String args[]) {
-        // Считываем файл конфигурации и обрабатыватываем аргументы командной строки
+        // РЎС‡РёС‚С‹РІР°РµРј С„Р°Р№Р» РєРѕРЅС„РёРіСѓСЂР°С†РёРё Рё РѕР±СЂР°Р±Р°С‚С‹РІР°С‚С‹РІР°РµРј Р°СЂРіСѓРјРµРЅС‚С‹ РєРѕРјР°РЅРґРЅРѕР№ СЃС‚СЂРѕРєРё
         configStorage settings = configStorage.initialize(args);
 
-        // Определяем своё дальнейшее поведение исходя из режима работы
+        // РћРїСЂРµРґРµР»СЏРµРј СЃРІРѕС‘ РґР°Р»СЊРЅРµР№С€РµРµ РїРѕРІРµРґРµРЅРёРµ РёСЃС…РѕРґСЏ РёР· СЂРµР¶РёРјР° СЂР°Р±РѕС‚С‹
         switch (settings.getWorkMode()) {
             case WORK_MODE_NOTHING:
-                // Простой путь - ничего не делаем
+                // РџСЂРѕСЃС‚РѕР№ РїСѓС‚СЊ - РЅРёС‡РµРіРѕ РЅРµ РґРµР»Р°РµРј
                 System.err.println("No work mode set. See --help");
                 System.exit(EXIT_NORMAL);
                 break;
             case WORK_MODE_HELP:
-                // Отображаем справку
+                // РћС‚РѕР±СЂР°Р¶Р°РµРј СЃРїСЂР°РІРєСѓ
                 for (String line : helpList)
                     System.out.println(line);
                 System.exit(EXIT_NORMAL);
                 break;
             case WORK_MODE_BACKUP:
-                // Создаём бекап текущего приложения
+                // РЎРѕР·РґР°С‘Рј Р±РµРєР°Рї С‚РµРєСѓС‰РµРіРѕ РїСЂРёР»РѕР¶РµРЅРёСЏ
+
         }
     }
 }
