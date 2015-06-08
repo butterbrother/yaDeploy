@@ -2,11 +2,13 @@ package org.butterbrother.yadeploy;
 
 import org.apache.tools.ant.DirectoryScanner;
 
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
 import java.util.Calendar;
 import java.util.Formatter;
@@ -14,90 +16,144 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 /**
- * Непосредственное выполнение действий
+ * РќРµРїРѕСЃСЂРµРґСЃС‚РІРµРЅРЅРѕРµ РІС‹РїРѕР»РЅРµРЅРёРµ РґРµР№СЃС‚РІРёР№
  */
 public class targetedAction implements staticValues {
     public static void doBackup(configStorage settings, ticket direction) {
         boolean debug = settings.isDebug();
-        // Создаём имя файла
-        // Вначале получаем префикс бекапа. Если его нет, используем имя каталога
-        // деплоя
+        // РЎРѕР·РґР°С‘Рј РёРјСЏ С„Р°Р№Р»Р°
+        // РџСЂРµС„РёРєСЃ - РёРјСЏ РєР°С‚Р°Р»РѕРіР° РґРµРїР»РѕСЏ
         StringBuilder fileName = new StringBuilder();
-        if (settings.getReleaseName().isEmpty()) {
-            fileName.append(direction.getDeployPath().getFileName());
-        } else {
-            fileName.append(settings.getReleaseName());
-        }
+        fileName.append(direction.getSourceName());
         System.out.println("Use backup prefix " + fileName);
 
-        // Дописываем дату и время создания
+        // Р”РѕРїРёСЃС‹РІР°РµРј РґР°С‚Сѓ Рё РІСЂРµРјСЏ СЃРѕР·РґР°РЅРёСЏ
         fileName.append("_").append(genDateTimePostfix());
-        // Дописываем расширение файла
-        fileName.append(".zip");
 
-        // Формируем полный путь
-        Path backupFile = Paths.get(direction.getBackupsPath().toString(), fileName.toString());
-        System.out.println("Backup is " + backupFile);
+        // Р”Р°Р»СЊРЅРµР№С€РµРµ РїРѕРІРµРґРµРЅРёРµ Р·Р°РІРёСЃРёС‚ РѕС‚ С‚РёРїР° Р±РµРєР°РїР°
+        String type;
+        try {
+            type = settings.getParameter(BACKUPS_SECTION, BACKUPS_TYPE).toLowerCase();
+        } catch (ParameterNotFoundException err) {
+            System.out.println("Use default backup - compression to zip.");
+            System.out.println("To override this, set \"[" + BACKUPS_SECTION + "]\"->\"" + BACKUPS_TYPE + "\" to another.");
+            type = "zip";
+        }
 
-        // Выполняем архивацию
-        try (ZipOutputStream zipFile = new ZipOutputStream(
-                new BufferedOutputStream(
-                        new FileOutputStream(backupFile.toFile(), false), 4096 ))) {
-            byte buffer[] = new byte[4096];
-            int length;
-            // Сканируем
-            DirectoryScanner dirscan = new DirectoryScanner();
-            dirscan.setBasedir(direction.getDeployPath().toFile());
-            dirscan.setCaseSensitive(true);
-            dirscan.scan();
-            // Получаем список файлов и каталогов
-            String[] dirs = dirscan.getIncludedDirectories();
-            String[] files = dirscan.getIncludedFiles();
+        // РџРѕР»СѓС‡Р°РµРј СЃРїРёСЃРѕРє РёРіРЅРѕСЂРёСЂСѓРµРјС‹С… С„Р°Р№Р»РѕРІ
+        String[] ignored;
+        try {
+            ignored = settings.getSepatatedParameter(BACKUPS_SECTION, BACKUPS_IGNORE);
+            // РћС‚РѕР±СЂР°Р¶Р°РµРј СЃРїРёСЃРѕРє, РµСЃР»Рё РѕРЅ РµСЃС‚СЊ
+            System.out.println("This files will be ignored:");
+            StringBuilder ignoreList = new StringBuilder();
+            for (String ignoredItem : ignored)
+                ignoreList.append("- ").append(ignoredItem).append("\n");
+            System.out.println(ignoreList);
+        } catch (ParameterNotFoundException err) {
+            System.out.println("No ignore files.");
+            ignored = new String[0];
+        }
+        // РЎРєР°РЅРёСЂСѓРµРј
+        DirectoryScanner dirScan = new DirectoryScanner();
+        dirScan.setBasedir(direction.getSourceFile());
+        dirScan.setCaseSensitive(true);
+        // Р”РѕР±Р°РІР»СЏРµРј РёСЃРєР»СЋС‡РµРЅРёСЏ
+        dirScan.setExcludes(ignored);
+        dirScan.scan();
+        // РџРѕР»СѓС‡Р°РµРј СЃРїРёСЃРѕРє С„Р°Р№Р»РѕРІ Рё РєР°С‚Р°Р»РѕРіРѕРІ
+        String[] dirs = dirScan.getIncludedDirectories();
+        String[] files = dirScan.getIncludedFiles();
 
-            // Создаём структуру каталогов
-            for (String dir : dirs) {
-                if (dir.isEmpty()) continue;    // Пропускаем добавление корневого каталога - имя архива
-                ZipEntry zipped = new ZipEntry(dir + "/");
-                // Получаю дату-время модификации
-                FileTime modTime = Files.getLastModifiedTime(Paths.get(direction.getDeployPath().toString(), dir));
-                System.out.println("Create dir in ZIP: " + zipped.getName());
-                zipped.setTime(modTime.toMillis());
-                zipFile.putNextEntry(zipped);
-                zipFile.closeEntry();
-            }
+        if (type.equals("zip")) {
+            // Р”РѕРїРёСЃС‹РІР°РµРј СЂР°СЃС€РёСЂРµРЅРёРµ С„Р°Р№Р»Р°
+            fileName.append(".zip");
 
-            // Сжимаем файлы
-            for (String file : files) {
-                ZipEntry zipped = new ZipEntry(file);
-                // Получаю дату-время модификации файла
-                FileTime modTime = Files.getLastModifiedTime(Paths.get(direction.getDeployPath().toString(), file));
-                zipped.setTime(modTime.toMillis());
-                zipFile.putNextEntry(zipped);
-                System.out.println("Compress file " + zipped.getName());
-                try (BufferedInputStream inpDir =
-                             new BufferedInputStream(
-                                     new FileInputStream(
-                                             new File(direction.getDeployPath().toFile(), file)), 4096)) {
-                    while ((length = inpDir.read(buffer)) > 0)
-                        zipFile.write(buffer, 0, length);
-                } catch (IOException inpDirReadErr) {
-                    System.err.println("Unable compress file " + file + ": " + inpDirReadErr);
-                    if (debug) inpDirReadErr.printStackTrace();
+            // Р¤РѕСЂРјРёСЂСѓРµРј РїРѕР»РЅС‹Р№ РїСѓС‚СЊ
+            Path backupFile = Paths.get(direction.getDestinationFullName(), fileName.toString());
+            System.out.println("Backup is " + backupFile);
+
+            // Р’С‹РїРѕР»РЅСЏРµРј Р°СЂС…РёРІР°С†РёСЋ
+            try (ZipOutputStream zipFile = new ZipOutputStream(new BufferedOutputStream(Files.newOutputStream(backupFile), 4096))) {
+                byte buffer[] = new byte[4096];
+                int length;
+
+                // РЎРѕР·РґР°С‘Рј СЃС‚СЂСѓРєС‚СѓСЂСѓ РєР°С‚Р°Р»РѕРіРѕРІ
+                for (String dir : dirs) {
+                    if (dir.isEmpty()) continue;    // РџСЂРѕРїСѓСЃРєР°РµРј РґРѕР±Р°РІР»РµРЅРёРµ РєРѕСЂРЅРµРІРѕРіРѕ РєР°С‚Р°Р»РѕРіР° - РёРјСЏ Р°СЂС…РёРІР°
+                    ZipEntry zipped = new ZipEntry(dir + "/");
+                    // РџРѕР»СѓС‡Р°СЋ РґР°С‚Сѓ-РІСЂРµРјСЏ РјРѕРґРёС„РёРєР°С†РёРё
+                    FileTime modTime = Files.getLastModifiedTime(Paths.get(direction.getSourceFullName(), dir));
+                    System.out.println("Create dir in ZIP: " + zipped.getName());
+                    zipped.setTime(modTime.toMillis());
+                    zipFile.putNextEntry(zipped);
+                    zipFile.closeEntry();
                 }
-                zipFile.closeEntry();
+
+                // РЎР¶РёРјР°РµРј С„Р°Р№Р»С‹
+                for (String file : files) {
+                    ZipEntry zipped = new ZipEntry(file);
+                    // РџРѕР»СѓС‡Р°СЋ РґР°С‚Сѓ-РІСЂРµРјСЏ РјРѕРґРёС„РёРєР°С†РёРё С„Р°Р№Р»Р°
+                    FileTime modTime = Files.getLastModifiedTime(Paths.get(direction.getSourceFullName(), file));
+                    zipped.setTime(modTime.toMillis());
+                    zipFile.putNextEntry(zipped);
+                    System.out.println("Compress file " + zipped.getName());
+                    try (BufferedInputStream inpDir = new BufferedInputStream(Files.newInputStream(Paths.get(direction.getSourceFullName(), file)), 4096)) {
+                        while ((length = inpDir.read(buffer)) > 0)
+                            zipFile.write(buffer, 0, length);
+                    } catch (IOException inpDirReadErr) {
+                        System.err.println("Unable compress file " + file + ": " + inpDirReadErr);
+                        if (debug) inpDirReadErr.printStackTrace();
+                    }
+                    zipFile.closeEntry();
+                }
+            } catch (FileNotFoundException ignore) {
+            } catch (IOException err) {
+                System.err.println("Compression error: " + err);
+                if (debug) err.printStackTrace();
+                System.exit(EXIT_BACKUP_ERROR);
             }
-        } catch (FileNotFoundException ignore) {
-        } catch (IOException err) {
-            System.err.println("Compression error: " + err);
-            if (debug) err.printStackTrace();
-            System.exit(EXIT_BACKUP_ERROR);
+        } else {
+            // Р¤РѕСЂРјРёСЂСѓРµРј РїРѕР»РЅС‹Р№ РїСѓС‚СЊ
+            Path backupDir = Paths.get(direction.getDestinationFullName(), fileName.toString());
+            System.out.println("Backup path is " + backupDir);
+
+            // РЎРѕР·РґР°С‘Рј РєР°С‚Р°Р»РѕРі СЃ Р±РµРєР°РїРѕРј
+            try {
+                Files.createDirectories(backupDir);
+            } catch (IOException ioError) {
+                System.err.println("Unable to create backup directory " + backupDir.getFileName() + ": " + ioError);
+                if (debug) ioError.printStackTrace();
+                System.exit(EXIT_BACKUP_ERROR);
+            }
+
+            // Р’РѕСЃСЃРѕР·РґР°С‘Рј СЃС‚СЂСѓРєС‚СѓСЂСѓ РєР°С‚Р°Р»РѕРіР° РґРµРїР»РѕСЏ
+            for (String dir: dirs) {
+                try {
+                    Files.createDirectories(Paths.get(direction.getDestinationFullName(), dir));
+                } catch (IOException ioErr) {
+                    System.err.println("Unable to create " + dir + ": " + ioErr);
+                }
+            }
+
+            // РџРѕСЃР»РµРґРѕРІР°С‚РµР»СЊРЅРѕ РєРѕРїРёСЂСѓРµРј С„Р°Р№Р»С‹
+            for (String file: files) {
+                try {
+                    Files.copy(
+                            Paths.get(direction.getSourceFullName(), file),
+                            Paths.get(direction.getDestinationFullName(), file)
+                    );
+                } catch (IOException ioErr) {
+                    System.err.println("Unable to backup " + file + ": " + ioErr);
+                }
+            }
         }
     }
 
     /**
-     * Генерирует постфикс с текущей датой и временем
+     * Р“РµРЅРµСЂРёСЂСѓРµС‚ РїРѕСЃС‚С„РёРєСЃ СЃ С‚РµРєСѓС‰РµР№ РґР°С‚РѕР№ Рё РІСЂРµРјРµРЅРµРј
      *
-     * @return  Дата и время в формате ГГГГ-ММ-ДД_ЧЧ-МИ
+     * @return Р”Р°С‚Р° Рё РІСЂРµРјСЏ РІ С„РѕСЂРјР°С‚Рµ Р“Р“Р“Р“-РњРњ-Р”Р”_Р§Р§-РњР
      */
     private static String genDateTimePostfix() {
         return new Formatter().format("%TY-%<Tm-%<Td_%<TH-%<TM", Calendar.getInstance()).toString();

@@ -23,6 +23,7 @@ public interface staticValues {
     int EXIT_CONFIG_ERROR = 1;  // Ошибка чтения и обработки файла конфигурации
     int EXIT_BACKUP_CHECK_ERROR = 2;    // Ошибка при проверке на возможность бекапа
     int EXIT_BACKUP_ERROR = 3;  // Ошибка выполнения бекапа
+    int EXIT_GENERAL_ERROR = 10;    // Общая ошибка
 
     /*
      * Настройки в ini-файле
@@ -30,13 +31,39 @@ public interface staticValues {
     // [main]
     String MAIN_SECTION = "main";
     // releases = каталог с релизами, обязательный параметр
-    String RELEASES_PATH = "releases";
-    // backups = каталог с бекапами - обязательный
-    String BACKUPS_PATH = "backups";
     // temp = каталог с временными файлами - не обязательный. Если не указывается, создаём в системном TEMP
     String TMP_PATH = "temp";
     // deploy = каталог с активным приложением - обязательный
-    String DEPLOY_PATH = "deploy";
+
+    // [backup]
+    String BACKUPS_SECTION = "backup";
+    // Настройки бекапа
+    // path = путь к каталогу бекапов
+    String BACKUPS_LOCATION = "path";
+    // ignore = игнорируемые пути и файлы
+    String BACKUPS_IGNORE = "ignore";
+    // type = тип архивации, zip - архив. Иное - каталог
+    String BACKUPS_TYPE = "type";
+
+    // [deploy]
+    String DEPLOY_SECTION = "deploy";
+    // Настройки развёртывания и восстановления
+    // path = путь к каталогу деплоя
+    String DEPLOY_LOCATION = "path";
+    // watch = эти файлы проверяются на наличие изменений, разделение - точка с запятой
+    String DEPLOY_WATCH = "watch";
+    // ignore = эти файлы и каталоги игнорируются при обновлении и восстановлении
+    String DEPLOY_IGNORE = "ignore";
+    // delete = эти файлы удаляются при развёртывании
+    String DEPLOY_DELETE = "delete";
+
+    // [releases]
+    String RELEASES_SECTION = "releases";
+    // Настройки архивов приложений
+    // path = путь к каталогу с приложениями
+    String RELEASES_LOCATION = "path";
+    // filter = фильтрация по регекспу (java regexp)
+    String RELEASES_REGEXP = "filter";
 
     /*
      * Строка справки

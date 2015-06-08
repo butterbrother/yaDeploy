@@ -3,6 +3,7 @@ package org.butterbrother.yadeploy;
 import org.apache.tools.ant.DirectoryScanner;
 import org.butterbrother.selectFSItem.dialogs;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -18,55 +19,119 @@ import java.nio.file.Paths;
  * Здесь проверяется допустимость работы при наличии/отсутствии каких-либо путей
  * <p/>
  * При провале проверки работа приложения завершится с характерной ошибкой
+ * <p/>
+ * Некоторые проверки требуют несколько разрешений для выполнения какого-либо действия
  */
 public class ticket
     implements staticValues{
-    private Path backupsPath;       // Каталог бекапов
-    private Path releasesPath;      // Каталог с релизами
-    private Path temporariesPath;   // Каталог временными файлами
-    private Path deployPath;        // Каталог с текущим приложением
 
-    private boolean deleteTemporary;// Удалить временный каталог после завершения действия
+    // Каталог временных файлов
+    private Path temporariesPath;       // В виде Path для nio
+    private File temporariesFile;       // В виде File. Требуется для традиционного api и ant-api
+    private String temporariesFullName; // В виде полного строкового пути
+    private String temporariesName;     // Имя каталога временных файлов
+
+    // Каталог исходных файлов
+    private Path sourcePath;            // В виде Path для nio
+    private File sourceFile;            // В виде File. Требуется для традиционного api и ant-api
+    private String sourceFullName;      // В виде полного строкового пути
+    private String sourceName;          // Имя исходного каталога
+
+    // Конечный каталог
+    private Path destinationPath;       // В виде Path для nio
+    private File destinationFile;       // В виде File. Требуется для традиционного api и ant-api
+    private String destinationFullName; // В виде полного строкового пути
+    private String destinationName;     // Имя конечного каталога
+
+    private boolean deleteTemporary;    // Удалить временный каталог после завершения действия
 
     /**
      * Внутренняя инициализация. Получить разрешение можно только пройдя
      * соответствующие проверки
      *
-     * @param backupsPath     Каталог бекапов
-     * @param releasesPath    Каталог релизов
-     * @param temporariesPath Каталог временных файлов
-     * @param deployPath      Каталог с развёрнутым приложенем
-     * @param deleteTemporary Флаг - удалить каталог с временными файлами
+     * @param source            Источник
+     * @param destination       Приёмник
+     * @param temporary         Временный каталог
+     * @param deleteTemporary   Указание на необходимость удаления временного каталога
      */
-    private ticket(Path backupsPath,
-                   Path releasesPath,
-                   Path temporariesPath,
-                   Path deployPath,
-                   boolean deleteTemporary) {
-        this.backupsPath = backupsPath != null ? backupsPath : Paths.get("./");
-        this.releasesPath = releasesPath != null ? releasesPath : Paths.get("./");
-        this.temporariesPath = temporariesPath != null ? temporariesPath : Paths.get("./");
-        this.deployPath = deployPath != null ? deployPath : Paths.get("./");
+    private ticket(Path source, Path destination, Path temporary, boolean deleteTemporary) {
+        // Получаем пути
+        this.sourcePath = source;
+        this.destinationPath = destination;
+        this.temporariesPath = temporary != null ? temporary : Paths.get("./").toAbsolutePath();
         this.deleteTemporary = deleteTemporary;
+
+        // Получаем File из путей
+        this.sourceFile = source.toFile();
+        this.destinationFile = destination.toFile();
+        this.temporariesFile = temporary.toFile();
+
+        // Получаем полные строковые пути
+        this.sourceFullName = source.toString();
+        this.destinationFullName = destination.toString();
+        this.temporariesFullName = temporary.toString();
+
+        // Получаем имена файлов
+        this.sourceName = source.getFileName().toString();
+        this.destinationName = destination.getFileName().toString();
+        this.temporariesName = temporary.getFileName().toString();
     }
 
     /**
-     * Получение каталога с бекапами
+     * Получить каталог источника действия
      *
-     * @return  путь каталога с бекапами
+     * @return  Каталог источника действия
      */
-    public Path getBackupsPath() {
-        return backupsPath;
-    }
+    public Path getSourcePath() { return sourcePath; }
 
     /**
-     * Получение каталога с релизами
+     * Получить каталог приёмника действия
      *
-     * @return  путь каталога с релизами
+     * @return  Каталог приёмника действия
      */
-    public Path getReleasesPath() {
-        return releasesPath;
-    }
+    public Path getDestinationPath() { return destinationPath; }
+
+    /**
+     * Получить строковый путь каталога источника
+     *
+     * @return  Строковый путь каталога источника
+     */
+    public String getSourceFullName() { return sourceFullName; }
+
+    /**
+     * Получить строковое имя источника (без полного пути)
+     *
+     * @return  Имя источника
+     */
+    public String getSourceName() { return sourceName; }
+
+    /**
+     * Получить строковое имя каталога временных файлов (без полного пути)
+     *
+     * @return  Имя каталога временных файлов
+     */
+    public String getTemporariesName() { return temporariesName; }
+
+    /**
+     * Получить строковое имя каталога назначения (без полного пути)
+     *
+     * @return  Имя каталога назначения
+     */
+    public String getDestinationName() { return destinationName; }
+
+    /**
+     * Получить строковый путь каталога приёмника
+     *
+     * @return  Строковый путь каталога приёмника
+     */
+    public String getDestinationFullName() { return destinationFullName; }
+
+    /**
+     * Получить строковый путь каталога временных файлов
+     *
+     * @return  Строковый путь каталога временных файлов
+     */
+    public String getTemporariesFullName() { return temporariesFullName; }
 
     /**
      * Получение каталога с временными файлами
@@ -75,15 +140,6 @@ public class ticket
      */
     public Path getTemporariesPath() {
         return temporariesPath;
-    }
-
-    /**
-     * Получение каталога с развёрнутым приложением
-     *
-     * @return  путь каталога с развёрнутым приложением
-     */
-    public Path getDeployPath() {
-        return deployPath;
     }
 
     /**
@@ -97,6 +153,30 @@ public class ticket
     }
 
     /**
+     * Получение пути к каталогу временных файлов в виде File.
+     * Для традиционного API и ANT-API
+     *
+     * @return  Файл каталога временных файлов
+     */
+    public File getTemporariesFile() { return temporariesFile; }
+
+    /**
+     * Получение пути к каталогу источника в виде File.
+     * Для традиционного API и ANT-API
+     *
+     * @return  Файл каталога источника
+     */
+    public File getSourceFile() { return sourceFile; }
+
+    /**
+     * Получение пути к каталогу получателя в виде File.
+     * Для традиционного API и ANT-API
+     *
+     * @return  Файл каталога получателя
+     */
+    public File getDestinationFile() { return destinationFile; }
+
+    /**
      * Получение допуска на бекап
      * Для бекапа требуются:
      * 1. Наличие каталога бекапа (можно создать в ходе работы)
@@ -105,20 +185,72 @@ public class ticket
      * @param settings  Текущие настройки в хранилище настроек
      * @return          Разрешение
      */
-    public static ticket getBackupAllow(configStorage settings) {
-        Path backupsPath = null;
-        Path deployPath = null;
+    public static ticket getBackupOnlyAllow(configStorage settings) {
 
         // Выполняем проверки
+        Path backupsPath = requiredBackupPath(settings);
+        Path deployPath = requiredDeploymentPath(settings);
+        deploymentPathNotBeEmpty(deployPath);
+
+        if (settings.isDebug()) System.err.println("DEBUG: ticket: Successfully get ticket");
+        return new ticket(deployPath, backupsPath, null, false);
+    }
+
+    /**
+     * Проверка условия, что каталог с деплоем не пустой (есть файлы)
+     *
+     * @param deploy    Каталог с деплоем
+     */
+    public static void deploymentPathNotBeEmpty(Path deploy) {
         try {
-            backupsPath = settings.getBackupDirectory();
+            DirectoryScanner dlist = new DirectoryScanner();
+            dlist.setBasedir(deploy.toFile());
+            dlist.scan();
+            if (dlist.getIncludedFilesCount() == 0)
+                backupFailed("Deployment path is empty");
+        } catch (NullPointerException err) {
+            backupFailed("Error get files list in deployment path");
+        }
+    }
+    /**
+     * Получение каталога деплоя, каталог обязательно должен быть
+     *
+     * @param settings  Файл и хранилище настроек
+     * @return          Путь к каталогу деплоя
+     */
+    private static Path requiredDeploymentPath(configStorage settings) {
+        try {
+            return settings.getDeployDirectory();
         } catch (ParameterNotFoundException err) {
-            backupFailed("parameter \"" + BACKUPS_PATH + "\" in config file not set", err, settings.isDebug());
+            backupFailed("parameter \"[" + DEPLOY_SECTION + "]\"->\""+ DEPLOY_LOCATION + "\" in config file not set", err, settings.isDebug());
+        } catch (FileNotFoundException err) {
+            backupFailed("Deployment path not exists", err, settings.isDebug());
+        } catch (IncompatibleFileType err) {
+            backupFailed("Deployment path must be a directory type", err, settings.isDebug());
+        }
+
+        // До этой части код доходить не должен
+        System.exit(EXIT_GENERAL_ERROR);
+        return Paths.get("./");
+    }
+
+    /**
+     * Получение каталога бекапов, каталог бекапов обязателен
+     *
+     * @param settings      Файл и хранилище настроек
+     * @return              Путь к каталогу бекапов
+     */
+    private static Path requiredBackupPath(configStorage settings) {
+        try {
+            return settings.getBackupDirectory();
+        } catch (ParameterNotFoundException err) {
+            backupFailed("parameter \"[" + BACKUPS_SECTION + "]\"->\"" + BACKUPS_LOCATION + "\" in config file not set", err, settings.isDebug());
         } catch (FileNotFoundException err) {
             // При отсутствии каталога бекапа предлагаем его создать
             try {
-                backupsPath = dialogs.answerCreateSelectPath("Backups path not exists", settings.getBackupDirectoryName());
+                Path backupsPath = dialogs.answerCreateSelectPath("Backups path not exists", settings.getBackupDirectoryName());
                 if (backupsPath == null) backupFailed("Cancelled by user");
+                return backupsPath;
             } catch (ParameterNotFoundException ignore) {
                 // Здесь уже не может быть
             } catch (IOException ioErr) {
@@ -128,28 +260,9 @@ public class ticket
             backupFailed("Backup location must be a directory type", err, settings.isDebug());
         }
 
-        try {
-            deployPath = settings.getDeployDirectory();
-        } catch (ParameterNotFoundException err) {
-            backupFailed("parameter \"" + DEPLOY_PATH + "\" in config file not set", err, settings.isDebug());
-        } catch (FileNotFoundException err) {
-            backupFailed("Deployment path not exists", err, settings.isDebug());
-        } catch (IncompatibleFileType err) {
-            backupFailed("Deployment path must be a directory type", err, settings.isDebug());
-        }
-
-        try {
-            DirectoryScanner dlist = new DirectoryScanner();
-            dlist.setBasedir(deployPath.toFile());
-            dlist.scan();
-            if (dlist.getIncludedFilesCount() == 0)
-                backupFailed("Deployment path is empty");
-        } catch (NullPointerException err) {
-            backupFailed("Error get files list in deployment path");
-        }
-
-        if (settings.isDebug()) System.err.println("DEBUG: ticket: Successfully get ticket");
-        return new ticket(backupsPath, null, null, deployPath, false);
+        // До этой части код не доходит. И не должен
+        System.exit(EXIT_GENERAL_ERROR);
+        return Paths.get("./");
     }
 
     /**

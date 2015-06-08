@@ -9,6 +9,8 @@ import java.io.IOException;
 import java.io.Reader;
 import java.nio.charset.Charset;
 import java.nio.file.*;
+import java.util.LinkedList;
+import java.util.StringTokenizer;
 
 /**
  * Хранит и загружает настройки приложения
@@ -184,7 +186,7 @@ public class configStorage
      * @throws ParameterNotFoundException Параметр не найден в ini
      */
     public String getBackupDirectoryName() throws ParameterNotFoundException {
-        return getParameter(MAIN_SECTION, BACKUPS_PATH);
+        return getParameter(BACKUPS_SECTION, BACKUPS_LOCATION);
     }
 
     /**
@@ -194,7 +196,7 @@ public class configStorage
      * @throws ParameterNotFoundException Параметр не найден в ini
      */
     public String getReleaseDirectoryName() throws ParameterNotFoundException {
-        return getParameter(MAIN_SECTION, RELEASES_PATH);
+        return getParameter(RELEASES_SECTION, RELEASES_LOCATION);
     }
 
     /**
@@ -214,7 +216,7 @@ public class configStorage
      * @throws ParameterNotFoundException Параметр не найден в ini
      */
     public String getDeployDirectoryName() throws ParameterNotFoundException {
-        return getParameter(MAIN_SECTION, DEPLOY_PATH);
+        return getParameter(DEPLOY_SECTION, DEPLOY_LOCATION);
     }
 
     /**
@@ -301,12 +303,34 @@ public class configStorage
         if (Files.notExists(directoryPath)) {
             throw new FileNotFoundException(details + directoryPath.getFileName() + " not found");
         }
-        // И что путь действительно каталог
-        if (Files.isDirectory(directoryPath)) {
+        // И что путь действительно каталог (либо симлинк)
+        if (Files.isDirectory(directoryPath) || Files.isSymbolicLink(directoryPath)) {
             return directoryPath;
         } else {
             throw new IncompatibleFileType("directory", "file");
         }
+    }
+
+    /**
+     * Выполняет поиск в Ini-файле по имени параметра с указанием расположения.
+     * Значение параметра разбивается на стройки, разделитель - точка с запятой.
+     * При поиске игнорируется регистр.
+     * Возвращается массив подстрок, полученных в результате разбиения.
+     * При отсутствии параметра - исключение
+     *
+     * @param sectionName       Предполагаемое имя секции
+     * @param parameterName     Предполагаемое имя параметра
+     * @return                  Значение параметра, разделённое на подстроки
+     * @throws ParameterNotFoundException  параметр не найден по имени в нужной секции
+     */
+    public String[] getSepatatedParameter(String sectionName, String parameterName) throws ParameterNotFoundException {
+        StringTokenizer separator = new StringTokenizer(getParameter(sectionName, parameterName), ";");
+        LinkedList<String> tempList = new LinkedList<>();
+
+        while (separator.hasMoreElements())
+            tempList.add(separator.nextToken());
+
+        return tempList.toArray(new String[tempList.size()]);
     }
 
     /**
