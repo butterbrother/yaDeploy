@@ -3,6 +3,12 @@
 # Mobile Tools for Java (J2ME)
 .mtj.tmp/
 
+# Idea output
+out/
+
+# Idea project files
+.idea/
+
 # Package Files #
 *.jar
 *.war
@@ -57,3 +63,6 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+.idea/artifacts/yaDeploy_jar.xml
+.idea/libraries/commons_io_2_4.xml
+.idea/workspace.xml

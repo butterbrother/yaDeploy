@@ -64,17 +64,17 @@ public class ticket
         // Получаем File из путей
         this.sourceFile = source.toFile();
         this.destinationFile = destination.toFile();
-        this.temporariesFile = temporary.toFile();
+        this.temporariesFile = this.temporariesPath.toFile();
 
         // Получаем полные строковые пути
         this.sourceFullName = source.toString();
         this.destinationFullName = destination.toString();
-        this.temporariesFullName = temporary.toString();
+        this.temporariesFullName = temporary != null? temporary.toString() : "";
 
         // Получаем имена файлов
         this.sourceName = source.getFileName().toString();
         this.destinationName = destination.getFileName().toString();
-        this.temporariesName = temporary.getFileName().toString();
+        this.temporariesName = this.temporariesPath.getFileName().toString();
     }
 
     /**

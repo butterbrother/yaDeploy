@@ -1,5 +1,6 @@
 package org.butterbrother.yadeploy;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.tools.ant.DirectoryScanner;
 
 import java.io.BufferedInputStream;
@@ -118,6 +119,16 @@ public class targetedAction implements staticValues {
             Path backupDir = Paths.get(direction.getDestinationFullName(), fileName.toString());
             System.out.println("Backup path is " + backupDir);
 
+            // Если уже существует аналогичный каталог - удаляем
+            if (Files.exists(backupDir)) {
+                try {
+                    FileUtils.deleteDirectory(backupDir.toFile());
+                } catch (IOException deleteError) {
+                    System.err.println("Unable to delete some name backup directory " + backupDir.getFileName() + ": " + deleteError);
+                    System.exit(EXIT_BACKUP_ERROR);
+                }
+            }
+
             // Создаём каталог с бекапом
             try {
                 Files.createDirectories(backupDir);
@@ -130,7 +141,7 @@ public class targetedAction implements staticValues {
             // Воссоздаём структуру каталога деплоя
             for (String dir: dirs) {
                 try {
-                    Files.createDirectories(Paths.get(direction.getDestinationFullName(), dir));
+                    Files.createDirectories(Paths.get(backupDir.toString(), dir));
                 } catch (IOException ioErr) {
                     System.err.println("Unable to create " + dir + ": " + ioErr);
                 }
@@ -141,7 +152,7 @@ public class targetedAction implements staticValues {
                 try {
                     Files.copy(
                             Paths.get(direction.getSourceFullName(), file),
-                            Paths.get(direction.getDestinationFullName(), file)
+                            Paths.get(backupDir.toString(), file)
                     );
                 } catch (IOException ioErr) {
                     System.err.println("Unable to backup " + file + ": " + ioErr);
