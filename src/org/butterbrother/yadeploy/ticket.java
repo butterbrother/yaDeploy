@@ -178,6 +178,7 @@ public class ticket
 
     /**
      * Получение допуска на бекап
+     * </p>
      * Для бекапа требуются:
      * 1. Наличие каталога бекапа (можно создать в ходе работы)
      * 2. Наличие каталога деплоя с файлами (уже должен существовать)
@@ -192,7 +193,43 @@ public class ticket
         Path deployPath = requiredDeploymentPath(settings);
         deploymentPathNotBeEmpty(deployPath);
 
-        if (settings.isDebug()) System.err.println("DEBUG: ticket: Successfully get ticket");
+        return new ticket(deployPath, backupsPath, null, false);
+    }
+
+    /**
+     * Получение допуска деплоя
+     *
+     * Для деплоя требуется:
+     * 1. Каталог с релизами - должен быть
+     * 2. Каталог с деплоями - должен быть указан путь
+     *
+     * @param settings  Текущие настройки в хранилище настроек
+     * @return          Разрешение
+     */
+    public static ticket getDeployAllow(configStorage settings) {
+
+    }
+
+    /**
+     * Получение допуска на выполнение предварительного бекапа
+     * перед каким-либо последующим действием (восстановление или деплой)
+     * </p>
+     * Требуется:
+     * 1. Наличие каталога бекапа (можно создать в ходе работы)
+     * Не обязательно:
+     * 2. Наличие каталога деплоя. Отсутствие создаст исключение, которое
+     * не является причиной отказа
+     *
+     * @param settings  Текущие настройки в хранилище настроек
+     * @return          Разрешение
+     * @throws ActionNotAvailable   бекап невозможен, нет каталога деплоя
+     */
+    public static ticket getBackupBeforeAllow(configStorage settings) throws ActionNotAvailable {
+        // Выполняем проверки
+        Path backupsPath = requiredBackupPath(settings);
+        Path deployPath = desirableDeploymentPath(settings);
+        desirableDeploymentPathNotBeEmpty(deployPath);
+
         return new ticket(deployPath, backupsPath, null, false);
     }
 
@@ -212,6 +249,35 @@ public class ticket
             backupFailed("Error get files list in deployment path");
         }
     }
+
+    /**
+     * Проверка условия, что каталог с деплоем не пустой (есть файлы).
+     *
+     * @param deploy    Каталог с деплоем
+     * @throws ActionNotAvailable   бекап невозможен, каталог деплоя пуст
+     */
+    public static void desirableDeploymentPathNotBeEmpty(Path deploy) throws ActionNotAvailable {
+        try {
+            if (scanDir(deploy) == 0)
+                throw new ActionNotAvailable();
+        } catch (NullPointerException err) {
+            throw new ActionNotAvailable();
+        }
+    }
+
+    /**
+     * Сканирование каталога и подсчёт имеющихся файлов
+     *
+     * @param path  Путь
+     * @return      Число файлов в каталоге
+     */
+    private static int scanDir(Path path) {
+        DirectoryScanner dlist = new DirectoryScanner();
+        dlist.setBasedir(path.toFile());
+        dlist.scan();
+        return dlist.getIncludedFilesCount();
+    }
+
     /**
      * Получение каталога деплоя, каталог обязательно должен быть
      *
@@ -235,7 +301,26 @@ public class ticket
     }
 
     /**
+     * Получение каталога деплоя. Каталогу на момент запроса существовать не обязательно.
+     *
+     * @param settings  Файл и хранилище настроек
+     * @return          Путь к каталогу деплоя
+     * @throws ActionNotAvailable   Отсутствие каталога деплоя и невозможность выполнения
+     * предварительной операции
+     */
+    private static Path desirableDeploymentPath(configStorage settings) throws ActionNotAvailable {
+        try {
+            return settings.getDeployDirectory();
+        } catch (ParameterNotFoundException | FileNotFoundException | IncompatibleFileType err) {
+            throw new ActionNotAvailable();
+        }
+    }
+
+    /**
      * Получение каталога бекапов, каталог бекапов обязателен
+     * </p>
+     * Если каталог бекапов не существует - будет предложено
+     * указать его вручную, либо создать
      *
      * @param settings      Файл и хранилище настроек
      * @return              Путь к каталогу бекапов
