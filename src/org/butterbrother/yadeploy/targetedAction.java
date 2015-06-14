@@ -139,7 +139,7 @@ public class targetedAction implements staticValues {
             }
 
             // Воссоздаём структуру каталога деплоя
-            for (String dir: dirs) {
+            for (String dir : dirs) {
                 try {
                     Files.createDirectories(Paths.get(backupDir.toString(), dir));
                 } catch (IOException ioErr) {
@@ -148,7 +148,7 @@ public class targetedAction implements staticValues {
             }
 
             // Последовательно копируем файлы
-            for (String file: files) {
+            for (String file : files) {
                 try {
                     Files.copy(
                             Paths.get(direction.getSourceFullName(), file),

@@ -20,9 +20,11 @@ import java.util.StringTokenizer;
 public class configStorage
         extends Ini
         implements staticValues {
-    private String releaseName; // Имя релиза, для silent-режима
-    private int workMode;       // Режим работы
-    private boolean debug;      // Режим отладки
+    private String releaseName;             // Имя релиза, для silent-режима
+    private int workMode;                   // Режим работы
+    private boolean debug;                  // Режим отладки
+    private boolean temporaryTemp = false;  // Флаг указывает, что прошлая отдача каталога временных
+    // Файлов отдала системный временный каталог
 
     /**
      * Стандартная инициализация.
@@ -271,8 +273,10 @@ public class configStorage
      */
     public Path getTemporaryDirectory() throws IOException {
         try {
+            temporaryTemp = false;
             return getDirectoryPath(getTemporaryDirectoryName(), "temporary directory");
         } catch (ParameterNotFoundException | IncompatibleFileType | FileNotFoundException ignore) {
+            temporaryTemp = true;
             // Игнорируем все ошибки и создаём временный каталог по-умолчанию
             if (debug) {
                 System.out.println("DEBUG: temporary directory request failed: " + ignore);
@@ -280,6 +284,16 @@ public class configStorage
             }
             return Files.createTempDirectory("yadeploy_");
         }
+    }
+
+    /**
+     * Возвращает флаг, что каталог временных файлов был создан в пути по-умолчанию
+     * и его необходимо удалить.
+     *
+     * @return Флаг
+     */
+    public boolean temporaryInSystemTemp() {
+        return temporaryTemp;
     }
 
     /**
@@ -318,10 +332,10 @@ public class configStorage
      * Возвращается массив подстрок, полученных в результате разбиения.
      * При отсутствии параметра - исключение
      *
-     * @param sectionName       Предполагаемое имя секции
-     * @param parameterName     Предполагаемое имя параметра
-     * @return                  Значение параметра, разделённое на подстроки
-     * @throws ParameterNotFoundException  параметр не найден по имени в нужной секции
+     * @param sectionName   Предполагаемое имя секции
+     * @param parameterName Предполагаемое имя параметра
+     * @return Значение параметра, разделённое на подстроки
+     * @throws ParameterNotFoundException параметр не найден по имени в нужной секции
      */
     public String[] getSepatatedParameter(String sectionName, String parameterName) throws ParameterNotFoundException {
         StringTokenizer separator = new StringTokenizer(getParameter(sectionName, parameterName), ";");

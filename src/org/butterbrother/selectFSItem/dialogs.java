@@ -12,10 +12,9 @@ public class dialogs {
     /**
      * Запрос на создание каталога либо выбор существующего
      *
-     * @param location  Расположение (из файл конфигурации, например)
-     * @return  Новое расположение. Может быть null
-     *
-     * @throws IOException  Ошибка при выборе/создании каталога
+     * @param location Расположение (из файл конфигурации, например)
+     * @return Новое расположение. Может быть null
+     * @throws IOException Ошибка при выборе/создании каталога
      */
     public static Path answerCreateSelectPath(String prompt, String location) throws IOException {
         while (true) {

@@ -19,11 +19,13 @@ public interface staticValues {
     /*
      * Коды возврата
      */
-    int EXIT_NORMAL = 0;        // Нормальное завершение
-    int EXIT_CONFIG_ERROR = 1;  // Ошибка чтения и обработки файла конфигурации
+    int EXIT_NORMAL = 0;                // Нормальное завершение
+    int EXIT_CONFIG_ERROR = 1;          // Ошибка чтения и обработки файла конфигурации
     int EXIT_BACKUP_CHECK_ERROR = 2;    // Ошибка при проверке на возможность бекапа
-    int EXIT_BACKUP_ERROR = 3;  // Ошибка выполнения бекапа
-    int EXIT_GENERAL_ERROR = 10;    // Общая ошибка
+    int EXIT_BACKUP_ERROR = 3;          // Ошибка выполнения бекапа
+    int EXIT_INSTALL_CHECK_ERROR = 4;   // Ошибка при проверке на возможность установки
+    int EXIT_INSTALL_ERROR = 5;         // Ошибка выполнения установки
+    int EXIT_GENERAL_ERROR = 10;        // Общая ошибка
 
     /*
      * Настройки в ini-файле
