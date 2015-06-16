@@ -26,6 +26,8 @@ public interface staticValues {
     int EXIT_INSTALL_CHECK_ERROR = 4;   // Ошибка при проверке на возможность установки
     int EXIT_INSTALL_ERROR = 5;         // Ошибка выполнения установки
     int EXIT_GENERAL_ERROR = 10;        // Общая ошибка
+    int EXIT_RESTORE_CHECK_ERROR = 6;   // Ошибка при проверке на возможность восстановления
+    int EXIT_RESTORE_ERROR = 7;         // Ошибка при восстановлении
 
     /*
      * Настройки в ini-файле
@@ -64,7 +66,7 @@ public interface staticValues {
     // Настройки архивов приложений
     // path = путь к каталогу с приложениями
     String RELEASES_LOCATION = "path";
-    // filter = фильтрация по регекспу (java regexp)
+    // filter = фильтрация по регекспу (ant regexp)
     String RELEASES_REGEXP = "filter";
 
     /*

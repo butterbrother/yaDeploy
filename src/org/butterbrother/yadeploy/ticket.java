@@ -98,7 +98,7 @@ public class ticket
     public static ticket getBackupOnlyAllow(configStorage settings) {
 
         // Выполняем проверки
-        Path backupsPath = requiredBackupPath(settings);
+        Path backupsPath = requiredBackupPathWithCreate(settings);
         Path deployPath = requiredDeploymentPath(settings);
         deploymentPathNotBeEmpty(deployPath);
 
@@ -120,7 +120,7 @@ public class ticket
         try {
             // Проходим проверки
             Path releasesPath = requiredReleasesPath(settings);
-            Path deployPath = requiredDeploymentParameterPath(settings);
+            Path deployPath = requiredDeploymentParameterPath(settings, true);
             Path temporaryPath = settings.getTemporaryDirectory();
             releasesPathNotBeEmpty(releasesPath);
 
@@ -190,14 +190,18 @@ public class ticket
      * Возвращает путь деплоя. Сам каталог может и не существовать.
      * Но если он существует - он должен быть каталогом
      *
-     * @param settings Параметры в файле конфигурации
+     * @param settings  Параметры в файле конфигурации
+     * @param isInstall true - установка, false - восстановление
      * @return Путь деплоя
      */
-    private static Path requiredDeploymentParameterPath(configStorage settings) {
+    private static Path requiredDeploymentParameterPath(configStorage settings, boolean isInstall) {
         try {
             return settings.getDeployDirectory();
         } catch (ParameterNotFoundException err) {
-            installFailed("parameter \"[" + DEPLOY_SECTION + "]\"->\"" + DEPLOY_LOCATION + "\" not set.");
+            if (isInstall)
+                installFailed("parameter \"[" + DEPLOY_SECTION + "]\"->\"" + DEPLOY_LOCATION + "\" not set.");
+            else
+                restoreError("parameter \"[" + DEPLOY_SECTION + "]\"->\"" + DEPLOY_LOCATION + "\" not set.");
         } catch (FileNotFoundException err) {
             Path deployPath;
             try {
@@ -208,7 +212,10 @@ public class ticket
             }
             return deployPath.toAbsolutePath();
         } catch (IncompatibleFileType err) {
-            installFailed("deployment file type must be a directory", err);
+            if (isInstall)
+                installFailed("deployment file type must be a directory", err);
+            else
+                restoreError("deployment file type must be a directory", err);
         }
 
         System.exit(EXIT_GENERAL_ERROR);
@@ -242,11 +249,41 @@ public class ticket
      */
     public static ticket getBackupBeforeAllow(configStorage settings) throws ActionNotAvailable {
         // Выполняем проверки
-        Path backupsPath = requiredBackupPath(settings);
+        Path backupsPath = requiredBackupPathWithCreate(settings);
         Path deployPath = desirableDeploymentPath(settings);
         desirableDeploymentPathNotBeEmpty(deployPath);
 
         return new ticket(deployPath, backupsPath, null, false);
+    }
+
+    /**
+     * Получение допуска на выполнение восстановления.
+     * Аналогичен установке с разницей, что каталог релиза - каталог с бекапами.
+     * <p/>
+     * Требуется:
+     * 1. Каталог с бекапами, должен существовать, но его можно выбрать, если не
+     * создан. Должен быть не пуст.
+     * 2. Каталог с деплоем - должен быть параметр
+     * 3. Каталог с временными файлами
+     *
+     * @param settings Настройки из файла настроек
+     * @return Разрешение
+     */
+    public static ticket getRestoreAllow(configStorage settings) {
+        try {
+            // Проходим проверки
+            Path backupsPath = requiredBackupPath(settings);
+            Path deployPath = requiredDeploymentParameterPath(settings, false);
+            Path temporaryPath = settings.getTemporaryDirectory();
+            backupPathNotBeEmpty(backupsPath);
+
+            return new ticket(backupsPath, deployPath, temporaryPath, settings.temporaryInSystemTemp());
+        } catch (IOException err) {
+            System.err.println("Unable to create temporary path: " + err);
+            System.exit(EXIT_GENERAL_ERROR);
+        }
+
+        return new ticket();
     }
 
     /**
@@ -256,13 +293,10 @@ public class ticket
      */
     public static void deploymentPathNotBeEmpty(Path deploy) {
         try {
-            DirectoryScanner dlist = new DirectoryScanner();
-            dlist.setBasedir(deploy.toFile());
-            dlist.scan();
-            if (dlist.getIncludedFilesCount() == 0)
-                backupFailed("Deployment path is empty");
+            if (scanDir(deploy) == 0)
+                backupFailed("deployment path is empty");
         } catch (NullPointerException err) {
-            backupFailed("Error get files list in deployment path");
+            backupFailed("error get files list in deployment path", err);
         }
     }
 
@@ -278,6 +312,20 @@ public class ticket
                 throw new ActionNotAvailable();
         } catch (NullPointerException err) {
             throw new ActionNotAvailable();
+        }
+    }
+
+    /**
+     * Проверка условия, что каталог с бекапами не пустой (есть файлы)
+     *
+     * @param backup Каталог с бекапами
+     */
+    public static void backupPathNotBeEmpty(Path backup) {
+        try {
+            if (scanDir(backup) == 0)
+                restoreError("backups path is empty");
+        } catch (NullPointerException err) {
+            restoreError("error get files list in backup path", err);
         }
     }
 
@@ -304,11 +352,11 @@ public class ticket
         try {
             return settings.getDeployDirectory();
         } catch (ParameterNotFoundException err) {
-            backupFailed("parameter \"[" + DEPLOY_SECTION + "]\"->\"" + DEPLOY_LOCATION + "\" in config file not set", err, settings.isDebug());
+            backupFailed("parameter \"[" + DEPLOY_SECTION + "]\"->\"" + DEPLOY_LOCATION + "\" in config file not set", err);
         } catch (FileNotFoundException err) {
-            backupFailed("Deployment path not exists", err, settings.isDebug());
+            backupFailed("Deployment path not exists", err);
         } catch (IncompatibleFileType err) {
-            backupFailed("Deployment path must be a directory type", err, settings.isDebug());
+            backupFailed("Deployment path must be a directory type", err);
         }
 
         // До этой части код доходить не должен
@@ -341,11 +389,11 @@ public class ticket
      * @param settings Файл и хранилище настроек
      * @return Путь к каталогу бекапов
      */
-    private static Path requiredBackupPath(configStorage settings) {
+    private static Path requiredBackupPathWithCreate(configStorage settings) {
         try {
             return settings.getBackupDirectory();
         } catch (ParameterNotFoundException err) {
-            backupFailed("parameter \"[" + BACKUPS_SECTION + "]\"->\"" + BACKUPS_LOCATION + "\" in config file not set", err, settings.isDebug());
+            backupFailed("parameter \"[" + BACKUPS_SECTION + "]\"->\"" + BACKUPS_LOCATION + "\" in config file not set", err);
         } catch (FileNotFoundException err) {
             // При отсутствии каталога бекапа предлагаем его создать
             try {
@@ -355,10 +403,10 @@ public class ticket
             } catch (ParameterNotFoundException ignore) {
                 // Здесь уже не может быть
             } catch (IOException ioErr) {
-                backupFailed("I/O error", ioErr, settings.isDebug());
+                backupFailed("I/O error", ioErr);
             }
         } catch (IncompatibleFileType err) {
-            backupFailed("Backup location must be a directory type", err, settings.isDebug());
+            backupFailed("backup location must be a directory type", err);
         }
 
         // До этой части код не доходит. И не должен
@@ -367,16 +415,62 @@ public class ticket
     }
 
     /**
+     * Получение каталога бекапов. Наличие каталога с бекапами обязательно.
+     * Если не существует - будет предложено выбрать другой каталог.
+     *
+     * @param settings Файл и хранилище настроек
+     * @return Путь к каталогу бекапов
+     */
+    private static Path requiredBackupPath(configStorage settings) {
+        try {
+            return settings.getBackupDirectory();
+        } catch (ParameterNotFoundException err) {
+            restoreError("parameter \"[" + BACKUPS_SECTION + "\"]->\"" + BACKUPS_LOCATION + "\" not set", err);
+        } catch (IncompatibleFileType err) {
+            restoreError("backup location must be a directory type", err);
+        } catch (FileNotFoundException err) {
+            try {
+                Path backupPath = selectItem.selectFile("./", "*", true);
+                if (backupPath == null) restoreError("cancelled by user");
+                return backupPath;
+            } catch (IOException ioERR) {
+                restoreError("I/O error", ioERR);
+            }
+        }
+
+        System.exit(EXIT_GENERAL_ERROR);
+        return Paths.get("./");
+    }
+
+    /**
+     * Ошибка проверки возможности восстановления
+     *
+     * @param cause Причина
+     * @param error Исключение
+     */
+    private static void restoreError(String cause, Exception error) {
+        System.err.println("Unable to start restore: " + cause + ": " + error);
+        System.exit(EXIT_RESTORE_CHECK_ERROR);
+    }
+
+    /**
+     * Ошибка проверки возможности восстановления
+     *
+     * @param cause Причина
+     */
+    private static void restoreError(String cause) {
+        System.err.println("Unable to start restore: " + cause);
+        System.exit(EXIT_RESTORE_CHECK_ERROR);
+    }
+
+    /**
      * Ошибка при проверке на возможность выполнения бекапов
      *
      * @param cause Причина
      * @param error Ошибка
-     * @param debug Режим отладки
      */
-    private static void backupFailed(String cause, Exception error, boolean debug) {
+    private static void backupFailed(String cause, Exception error) {
         System.err.println("Unable to start backup: " + cause + "(" + error + ")");
-        if (debug)
-            error.printStackTrace();
         System.exit(EXIT_BACKUP_CHECK_ERROR);
     }
 

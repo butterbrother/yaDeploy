@@ -28,6 +28,16 @@ public class start
                 System.out.println("Backup done");
                 System.exit(EXIT_NORMAL);
                 break;
+            case WORK_MODE_DEPLOY:
+                // Разворачиваем деплой нового приложения
+                // Предварительный бекап текущего приложения
+                try {
+                    targetedAction.doBackup(settings, ticket.getBackupBeforeAllow(settings));
+                } catch (ActionNotAvailable info) {
+                    System.err.println("Backup not available, skip.");
+                }
+                // Установка
+                targetedAction.doDeploy(settings, ticket.getInstallAllow(settings), true);
         }
     }
 }
