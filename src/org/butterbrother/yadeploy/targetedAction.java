@@ -8,6 +8,7 @@ import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -182,8 +183,99 @@ public class targetedAction implements staticValues {
         // По деплою
         fileChangeStatistic deployStat = new fileChangeStatistic();
 
-        Path installPath = null;    // Новый релиз, либо бекап
+        Path installPath = getInstallFilePath(settings, direction, isInstall);    // Новый релиз, либо бекап
+
+        // Основная процедура деплоя
+        // Получаем дату-время модификации источника
+        try {
+            archiveStat.setParentModTime(installPath);
+        } catch (IOException statErr) {
+            System.err.println("Warn: unable to get source modification time");
+        }
+
+        // Вначале создаём каталог временных файлов. Он однозначно будет удалён впоследствие
+        Path currentTempDir = Paths.get(direction.getTemporariesFullName(), "deploy_" + genDateTimePostfix());
+        try {
+            Files.createDirectories(currentTempDir);
+        } catch (IOException err) {
+            installRestoreError("create temporary directory I/O error: ", err, isInstall);
+        }
+
+        // Далее распаковываем, если это архив. Либо копируем, если это каталог
+        if (Files.isRegularFile(installPath)) {
+            try {
+                // Рассчитываем статистику
+                archiveStat.calculateZip(installPath);
+                // Распаковываем zip
+                extractArchive(installPath, currentTempDir);
+            } catch (IOException mainUnzipError) {
+                // Любая ошибка распаковки - прерывающая
+                installRestoreError("unable unzip archive", mainUnzipError, isInstall);
+            }
+        } else if (Files.isDirectory(installPath)) {
+            try {
+                archiveStat.calculatePath(installPath, new String[0], new String[0]);
+                // Копируем файлы
+                recursiveCopyDir(installPath, currentTempDir);
+            } catch (IOException copyError) {
+                installRestoreError("unable to copy extracted archive", copyError, isInstall);
+            }
+        }
+
+        // Скопировано и распаковано во временный каталог
+        // Получаем данные для удаления и игнорирования при установке
+        String ignoreList[] = getIgnoreList(settings);
+        String deleteList[] = getDeleteList(settings);
+
+        // Обрабатываем статистику деплоя
+        try {
+            deployStat.calculatePath(direction.getDestinationPath(), ignoreList, deleteList);
+        } catch (IOException err) {
+            System.err.println("Warn: unable to get deploy modification time statistic");
+        }
+    }
+
+    /**
+     * Получение списка игнорируемых файлов из конечного деплоя
+     *
+     * @param settings  Файл настроек
+     * @return          Список игнорируемых файлов. Если их нет - массив будет с 0 элементов.
+     */
+    private static String[] getIgnoreList(configStorage settings) {
+        try {
+            return settings.getSepatatedParameter(DEPLOY_SECTION, DEPLOY_IGNORE);
+        } catch (ParameterNotFoundException exp) {
+            System.out.println("Ignore deploy list not set and will not be used");
+            return new String[0];
+        }
+    }
+
+    /**
+     * Получение списка удаляемых файлов из конечного деплоя
+     *
+     * @param settings  Файл настроек
+     * @return          Список игнорируемых файлов. Если их нет - массив будет с 0 элементов.
+     */
+    private static String[] getDeleteList(configStorage settings) {
+        try {
+            return settings.getSepatatedParameter(DEPLOY_SECTION, DEPLOY_DELETE);
+        } catch (ParameterNotFoundException exp) {
+            System.out.println("Delete list into deploy not set and will not be used");
+            return new String[0];
+        }
+    }
+
+    /**
+     * Получение каталога/файла релиза
+     *
+     * @param settings      Настройки из файла настроек
+     * @param direction     Файлы источника и получателя, разрешение
+     * @param isInstall     true - установка, false - восстановление
+     * @return              Файл/каталог с релизом либо бекапом
+     */
+    private static Path getInstallFilePath(configStorage settings, ticket direction, boolean isInstall) {
         // Если указана версия релиза/бекапа, то сначала попытаемся найти её
+        Path installPath = null;
         if (!settings.getReleaseName().isEmpty()) {
             DirectoryScanner installFind = new DirectoryScanner();
             installFind.setBasedir(direction.getSourceFile());
@@ -228,13 +320,8 @@ public class targetedAction implements staticValues {
                     // Об этом надо объявить
                     Path releaseFile = Paths.get(direction.getSourceFullName(), value);
                     if (Files.isRegularFile(releaseFile)) {
-                        try {
-                            if (!Files.probeContentType(releaseFile).contains("application/zip")) {
-                                System.err.println("File " + value + " not is zip-archive, unsupported, skip from list");
-                                item.remove();
-                            }
-                        } catch (IOException err) {
-                            System.err.println("Unable to read " + value + " release, skip from list");
+                        if (! validateFileType(releaseFile)) {
+                            System.err.println("File " + value + " not is zip-archive, unsupported, skip from list");
                             item.remove();
                         }
                     }
@@ -291,12 +378,8 @@ public class targetedAction implements staticValues {
                     System.exit(EXIT_NORMAL);
                 }
                 // Проверяем, что если выбран файл - то он zip
-                if (Files.isRegularFile(installPath)) {
-                    String mimeType = Files.probeContentType(installPath);
-                    if (!mimeType.contains("application/zip")) {
-                        installRestoreError("unsupported file. Must be a zip-file or unpacked directory", isInstall);
-                    }
-                }
+                if (! validateFileType(installPath))
+                    installRestoreError("unsupported file. Must be a zip-file or unpacked directory", isInstall);
             } catch (IOException err) {
                 installRestoreError("I/O error", err, isInstall);
             }
@@ -307,66 +390,39 @@ public class targetedAction implements staticValues {
             System.exit(EXIT_GENERAL_ERROR);
         }
 
-        // Основная процедура деплоя
-        // Получаем дату-время модификации источника
-        try {
-            archiveStat.setParentModTime(installPath);
-        } catch (IOException statErr) {
-            System.err.println("Warn: unable to get source modification time");
-        }
+        return installPath;
+    }
 
-        // Вначале создаём каталог временных файлов. Он однозначно будет удалён впоследствие
-        Path currentTempDir = Paths.get(direction.getTemporariesFullName(), "deploy_" + genDateTimePostfix());
+
+    /**
+     * Проверка верного типа файла, годного для деплоя.
+     * Приложение поддерживает только zip-архивы:
+     * .zip и .war
+     *
+     * @param releaseFile   Проверяемый файл
+     * @return              Поддерживаемость файла приложением
+     */
+    private static boolean validateFileType(Path releaseFile) {
+        if (Files.isDirectory(releaseFile)) return true;    // Каталоги разрешены
+        String mimeType;
         try {
-            Files.createDirectories(currentTempDir);
+            mimeType = Files.probeContentType(releaseFile);
         } catch (IOException err) {
-            installRestoreError("create temporary directory I/O error: ", err, isInstall);
+            mimeType = null;
         }
-
-        // Далее распаковываем, если это архив. Либо копируем, если это каталог
-        if (Files.isRegularFile(installPath)) {
-            try {
-                // Рассчитываем статистику
-                archiveStat.calculateZip(installPath);
-                // Распаковываем zip
-                extractArchive(installPath, currentTempDir);
-            } catch (IOException mainUnzipError) {
-                // Любая ошибка распаковки - прерывающая
-                installRestoreError("unable unzip archive", mainUnzipError, isInstall);
-            }
-        } else if (Files.isDirectory(installPath)) {
-            try {
-                archiveStat.calculatePath(installPath, new String[0], new String[0]);
-                // Копируем файлы
-                recursiveCopyDir(installPath, currentTempDir);
-            } catch (IOException copyError) {
-                installRestoreError("unable to copy extracted archive", copyError, isInstall);
+        String fileStringPath = releaseFile.toString().toLowerCase();
+        if (mimeType != null) {
+            if (mimeType.contains("application/zip"))
+                return true;
+        } else {
+            // Иногда получение content-type возвращает null
+            // тогда проверяем по расширению файла
+            if (fileStringPath.endsWith(".zip") || (fileStringPath.endsWith(".war"))) {
+                return true;
             }
         }
 
-        // Скопировано и распаковано во временный каталог
-        // Получаем данные для удаления и игнорирования при установке
-        String ignoreList[];
-        String deleteList[];
-        try {
-            ignoreList = settings.getSepatatedParameter(DEPLOY_SECTION, DEPLOY_IGNORE);
-        } catch (ParameterNotFoundException exp) {
-            System.out.println("Ignore deploy list not set and will not be used");
-            ignoreList = new String[0];
-        }
-        try {
-            deleteList = settings.getSepatatedParameter(DEPLOY_SECTION, DEPLOY_DELETE);
-        } catch (ParameterNotFoundException exp) {
-            System.out.println("Delete list into deploy not set and will not be used");
-            deleteList = new String[0];
-        }
-
-        // Обрабатываем статистику деплоя
-        try {
-            deployStat.calculatePath(direction.getDestinationPath(), ignoreList, deleteList);
-        } catch (IOException err) {
-            System.err.println("Warn: unable to get deploy modification time statistic");
-        }
+        return false;
     }
 
     /**
@@ -381,12 +437,16 @@ public class targetedAction implements staticValues {
         DirectoryScanner copyFiles = new DirectoryScanner();
         copyFiles.setBasedir(source.toFile());
         copyFiles.scan();
+        Formatter progressBar = new Formatter(System.out);
+        progressBar.format("Copy directory recursively:\n");
         // Воссоздаём структуру
         for (String item : copyFiles.getIncludedDirectories()) {
+            progressBar.format("-- %s: %s", "Create dir\n", item);
             Files.createDirectories(Paths.get(destination.toString(), item));
         }
         // Копируем файлы
         for (String item : copyFiles.getIncludedFiles()) {
+            progressBar.format("-- %s: %s", "Copy file\n", item);
             Path sourceFile = Paths.get(source.toString(), item);
             Path targetFile = Paths.get(destination.toString(), item);
             Files.copy(sourceFile, targetFile);
@@ -401,12 +461,16 @@ public class targetedAction implements staticValues {
      * @throws IOException Ошибка при разорхивации
      */
     private static void extractArchive(Path zipFile, Path destinationDir) throws IOException {
-        try (ZipInputStream zip = new ZipInputStream(new BufferedInputStream(Files.newInputStream(zipFile), 4096))) {
+        Charset zipEncoding = fileChangeStatistic.detectZipEncoding(zipFile);
+        Formatter progressBar = new Formatter(System.out);
+        try (ZipInputStream zip = new ZipInputStream(new BufferedInputStream(Files.newInputStream(zipFile), 4096), zipEncoding)) {
+            progressBar.format("Extract archive:\n");
             int length;
             byte buffer[] = new byte[4096];
             ZipEntry archive;
             while ((archive = zip.getNextEntry()) != null) {
                 if (archive.isDirectory()) {
+                    progressBar.format("-- Create dir: %s\n", archive.getName());
                     // Создаём структуру каталогов
                     Path extractedDir = Paths.get(destinationDir.toString(), archive.getName());
                     Files.createDirectories(extractedDir);
@@ -419,12 +483,14 @@ public class targetedAction implements staticValues {
                         Files.createDirectories(parrent);
                     // Пишем сам файл
                     try (BufferedOutputStream unzipped = new BufferedOutputStream(Files.newOutputStream(extractedFile), 4096)) {
-                        while ((length = (zip.read(buffer))) != 0)
+                        while ((length = (zip.read(buffer))) > 0)
                             unzipped.write(buffer, 0, length);
                     }
                 }
+                zip.closeEntry();
             }
         }
+        System.out.println("Extract complete");
     }
 
     /**

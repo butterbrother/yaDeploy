@@ -30,6 +30,7 @@ public class start
                 break;
             case WORK_MODE_DEPLOY:
                 // Разворачиваем деплой нового приложения
+                ticket installTicket = ticket.getInstallAllow(settings);
                 // Предварительный бекап текущего приложения
                 try {
                     targetedAction.doBackup(settings, ticket.getBackupBeforeAllow(settings));
@@ -37,7 +38,7 @@ public class start
                     System.err.println("Backup not available, skip.");
                 }
                 // Установка
-                targetedAction.doDeploy(settings, ticket.getInstallAllow(settings), true);
+                targetedAction.doDeploy(settings, installTicket, true);
         }
     }
 }

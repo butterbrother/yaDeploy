@@ -34,10 +34,8 @@ public interface staticValues {
      */
     // [main]
     String MAIN_SECTION = "main";
-    // releases = каталог с релизами, обязательный параметр
     // temp = каталог с временными файлами - не обязательный. Если не указывается, создаём в системном TEMP
     String TMP_PATH = "temp";
-    // deploy = каталог с активным приложением - обязательный
 
     // [backup]
     String BACKUPS_SECTION = "backup";
