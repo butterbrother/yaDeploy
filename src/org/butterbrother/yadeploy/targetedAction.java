@@ -233,6 +233,13 @@ public class targetedAction implements staticValues {
         } catch (IOException err) {
             System.err.println("Warn: unable to get deploy modification time statistic");
         }
+
+        // Удаляем файлы из спаска для удаления, из распакованного релиза
+        try {
+            deleteExcluded(currentTempDir, deleteList);
+        } catch (IOException err) {
+            installRestoreError("unable to delete files/directories from delete list", err, isInstall);
+        }
     }
 
     /**
@@ -393,6 +400,32 @@ public class targetedAction implements staticValues {
         return installPath;
     }
 
+    /**
+     * Удаление из временного каталога с распакованными файлами файлов из списка для удаления
+     *
+     * @param extractedPath     Каталог распакованных файлов
+     * @param deleteList        Список файлов для удаления
+     * @throws IOException      Ошибка ввода-вывода при выполнении какого-либо действия
+     */
+    private static void deleteExcluded(Path extractedPath, String[] deleteList) throws IOException {
+        DirectoryScanner forDel = new DirectoryScanner();
+        forDel.setBasedir(extractedPath.toFile());
+        forDel.setIncludes(deleteList);
+        forDel.scan();
+        Formatter progressBar = new Formatter(System.out);
+        progressBar.format("Delete files from delete list:\n");
+        for (String item : forDel.getIncludedFiles()) {
+            progressBar.format("-- Delete file: %s\n", item);
+            Path removeFile = Paths.get(extractedPath.toString(), item);
+            Files.delete(removeFile);
+        }
+        for (String item : forDel.getIncludedDirectories()) {
+            progressBar.format("-- Delete directory: %s\n", item);
+            Path removeDir = Paths.get(extractedPath.toString(), item);
+            FileUtils.deleteDirectory(removeDir.toFile());
+        }
+        progressBar.format("Delete files from list complete\n");
+    }
 
     /**
      * Проверка верного типа файла, годного для деплоя.
@@ -403,26 +436,8 @@ public class targetedAction implements staticValues {
      * @return              Поддерживаемость файла приложением
      */
     private static boolean validateFileType(Path releaseFile) {
-        if (Files.isDirectory(releaseFile)) return true;    // Каталоги разрешены
-        String mimeType;
-        try {
-            mimeType = Files.probeContentType(releaseFile);
-        } catch (IOException err) {
-            mimeType = null;
-        }
         String fileStringPath = releaseFile.toString().toLowerCase();
-        if (mimeType != null) {
-            if (mimeType.contains("application/zip"))
-                return true;
-        } else {
-            // Иногда получение content-type возвращает null
-            // тогда проверяем по расширению файла
-            if (fileStringPath.endsWith(".zip") || (fileStringPath.endsWith(".war"))) {
-                return true;
-            }
-        }
-
-        return false;
+        return (fileStringPath.endsWith(".zip") || (fileStringPath.endsWith(".war")));
     }
 
     /**
@@ -441,12 +456,12 @@ public class targetedAction implements staticValues {
         progressBar.format("Copy directory recursively:\n");
         // Воссоздаём структуру
         for (String item : copyFiles.getIncludedDirectories()) {
-            progressBar.format("-- %s: %s", "Create dir\n", item);
+            progressBar.format("-- Create dir: %s\n", item);
             Files.createDirectories(Paths.get(destination.toString(), item));
         }
         // Копируем файлы
         for (String item : copyFiles.getIncludedFiles()) {
-            progressBar.format("-- %s: %s", "Copy file\n", item);
+            progressBar.format("-- Copy file: %s\n", item);
             Path sourceFile = Paths.get(source.toString(), item);
             Path targetFile = Paths.get(destination.toString(), item);
             Files.copy(sourceFile, targetFile);
@@ -475,6 +490,7 @@ public class targetedAction implements staticValues {
                     Path extractedDir = Paths.get(destinationDir.toString(), archive.getName());
                     Files.createDirectories(extractedDir);
                 } else {
+                    progressBar.format("-- Extract file: %s\n", archive.getName());
                     // Распаковываем файл
                     Path extractedFile = Paths.get(destinationDir.toString(), archive.getName());
                     // Проверяем, существует ли родительский каталог. Воссоздаём структуру, если нет
@@ -490,7 +506,7 @@ public class targetedAction implements staticValues {
                 zip.closeEntry();
             }
         }
-        System.out.println("Extract complete");
+        progressBar.format("Extract complete\n");
     }
 
     /**
