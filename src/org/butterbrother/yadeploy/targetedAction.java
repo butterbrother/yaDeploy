@@ -240,6 +240,95 @@ public class targetedAction implements staticValues {
         } catch (IOException err) {
             installRestoreError("unable to delete files/directories from delete list", err, isInstall);
         }
+
+        // Выполняем сравнение, если каталог с деплоем существует
+        try {
+            if (Files.exists(direction.getDestinationPath())) {
+                dirDiff differ = new dirDiff(currentTempDir, direction.getDestinationPath(), getWatchList(settings), ignoreList);
+                differ.doRetursiveDiff();
+            }
+        } catch (IOException err) {
+            installRestoreError("error check difference", err, isInstall);
+        }
+
+        // Если не существует - создаём
+        try {
+            if (Files.notExists(direction.getDestinationPath())) {
+                Files.createDirectories(direction.getDestinationPath());
+            }
+        } catch (IOException err) {
+            installRestoreError("unable to create deploy path", err, isInstall);
+        }
+
+        // Очищаем деплой
+        cleanupDeploy(direction.getDestinationPath(), ignoreList, isInstall);
+
+        // Копируем из временного каталога в деплой
+        try {
+            recursiveCopyDir(currentTempDir, direction.getDestinationPath());
+        } catch (IOException err) {
+            installRestoreError("unable copy files to deploy", err, isInstall);
+        }
+
+        // Удаляем временный каталог
+        try {
+            FileUtils.deleteDirectory(currentTempDir.toFile());
+        } catch (IOException err) {
+            System.err.println("Warn: unable to delete temporary path " + currentTempDir.toString());
+        }
+
+        // Если это системный временный каталог - удаляем и его
+        if (settings.temporaryInSystemTemp())
+            try {
+                FileUtils.deleteDirectory(direction.getTemporariesFile());
+            } catch (IOException err) {
+                System.err.println("Warn: unable to delete application temporary path in system temp");
+            }
+    }
+
+    /**
+     * Выполняет очистку каталога деплоя, игнорируя файлы и каталоги из игнорируемого списка
+     *
+     * @param deployPath    Каталог деплоя
+     * @param ignoreList    Игнорируемый список
+     */
+    private static void cleanupDeploy(Path deployPath, String ignoreList[], boolean isInstall) {
+        DirectoryScanner cleanList = new DirectoryScanner();
+        cleanList.setBasedir(deployPath.toFile());
+        cleanList.setExcludes(ignoreList);
+        cleanList.scan();
+        Formatter progressBar = new Formatter(System.out);
+
+        try {
+            // Удаляем файлы
+            for (String file : cleanList.getIncludedFiles()) {
+                progressBar.format("-- Delete file: %s\n", file);
+                Files.delete(Paths.get(deployPath.toString(), file));
+            }
+            // Удаляем каталоги
+            for (String dir : cleanList.getIncludedDirectories()) {
+                if (dir.isEmpty()) continue;    // Пропускаем сам каталог деплоя
+                progressBar.format("-- Delete directory: %s\n", dir);
+                FileUtils.deleteDirectory(Paths.get(deployPath.toString(), dir).toFile());
+            }
+        } catch (IOException err) {
+            installRestoreError("unable to cleanup deploy", err, isInstall);
+        }
+    }
+
+    /**
+     * Получение списка наблюдаемых файлов
+     *
+     * @param settings  Файл настроек
+     * @return          Список наблюдаемых файлов. Если их нет - массив будет с 0 элементов
+     */
+    private static String[] getWatchList(configStorage settings) {
+        try {
+            return settings.getSepatatedParameter(DEPLOY_SECTION, DEPLOY_WATCH);
+        } catch (ParameterNotFoundException exp) {
+            System.out.println("Watchable list not set and will not be used");
+            return new String[0];
+        }
     }
 
     /**

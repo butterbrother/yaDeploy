@@ -39,6 +39,18 @@ public class start
                 }
                 // Установка
                 targetedAction.doDeploy(settings, installTicket, true);
+                break;
+            case WORK_MODE_RESTORE:
+                // Восстанавливаем старую версию приложения
+                ticket recoveryTicket = ticket.getRestoreAllow(settings);
+                // Предварительный бекап текущего приложения
+                try {
+                    targetedAction.doBackup(settings, ticket.getBackupBeforeAllow(settings));
+                } catch (ActionNotAvailable info) {
+                    System.err.println("Backup not available, skip.");
+                }
+                // Восстановление
+                targetedAction.doDeploy(settings, recoveryTicket, false);
         }
     }
 }

@@ -20,22 +20,22 @@ import java.security.NoSuchAlgorithmException;
 import java.util.LinkedList;
 
 /**
- * Выполняет сравнение перечисленных в параметре файлов для сравнения.
- * Предлагает замену/дополнение файла, показывает различия тестовых файлов.
+ * Р’С‹РїРѕР»РЅСЏРµС‚ СЃСЂР°РІРЅРµРЅРёРµ РїРµСЂРµС‡РёСЃР»РµРЅРЅС‹С… РІ РїР°СЂР°РјРµС‚СЂРµ С„Р°Р№Р»РѕРІ РґР»СЏ СЃСЂР°РІРЅРµРЅРёСЏ.
+ * РџСЂРµРґР»Р°РіР°РµС‚ Р·Р°РјРµРЅСѓ/РґРѕРїРѕР»РЅРµРЅРёРµ С„Р°Р№Р»Р°, РїРѕРєР°Р·С‹РІР°РµС‚ СЂР°Р·Р»РёС‡РёСЏ С‚РµСЃС‚РѕРІС‹С… С„Р°Р№Р»РѕРІ.
  */
 public class dirDiff {
-    private String[] installFilesList;  // Список отслеживаемых файлов из новой установки
-    private String[] deployFileList;    // Список отслеживаемых файлов из деплоя
-    private String extractedPath;       // Полный путь к распакованному каталогу установки
-    private String deployPath;          // Полный путь к каталогу деплоя
+    private String[] installFilesList;  // РЎРїРёСЃРѕРє РѕС‚СЃР»РµР¶РёРІР°РµРјС‹С… С„Р°Р№Р»РѕРІ РёР· РЅРѕРІРѕР№ СѓСЃС‚Р°РЅРѕРІРєРё
+    private String[] deployFileList;    // РЎРїРёСЃРѕРє РѕС‚СЃР»РµР¶РёРІР°РµРјС‹С… С„Р°Р№Р»РѕРІ РёР· РґРµРїР»РѕСЏ
+    private String extractedPath;       // РџРѕР»РЅС‹Р№ РїСѓС‚СЊ Рє СЂР°СЃРїР°РєРѕРІР°РЅРЅРѕРјСѓ РєР°С‚Р°Р»РѕРіСѓ СѓСЃС‚Р°РЅРѕРІРєРё
+    private String deployPath;          // РџРѕР»РЅС‹Р№ РїСѓС‚СЊ Рє РєР°С‚Р°Р»РѕРіСѓ РґРµРїР»РѕСЏ
 
     /**
-     * Инициализация
+     * РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ
      *
-     * @param extracted  Каталог с распакованным релизом
-     * @param deploy     Каталог с деплоем
-     * @param watchList  Список файлов для сравнения
-     * @param ignoreList Список игнорируемых файлов. Желательно скомбинировать со списком удаляемых
+     * @param extracted  РљР°С‚Р°Р»РѕРі СЃ СЂР°СЃРїР°РєРѕРІР°РЅРЅС‹Рј СЂРµР»РёР·РѕРј
+     * @param deploy     РљР°С‚Р°Р»РѕРі СЃ РґРµРїР»РѕРµРј
+     * @param watchList  РЎРїРёСЃРѕРє С„Р°Р№Р»РѕРІ РґР»СЏ СЃСЂР°РІРЅРµРЅРёСЏ
+     * @param ignoreList РЎРїРёСЃРѕРє РёРіРЅРѕСЂРёСЂСѓРµРјС‹С… С„Р°Р№Р»РѕРІ. Р–РµР»Р°С‚РµР»СЊРЅРѕ СЃРєРѕРјР±РёРЅРёСЂРѕРІР°С‚СЊ СЃРѕ СЃРїРёСЃРєРѕРј СѓРґР°Р»СЏРµРјС‹С…
      */
     public dirDiff(Path extracted, Path deploy, String watchList[], String ignoreList[]) {
         this.extractedPath = extracted.toString();
@@ -45,30 +45,30 @@ public class dirDiff {
     }
 
     /**
-     * Сканирует выбранный каталог. Составляет суммарный список отслеживаемых файлов
+     * РЎРєР°РЅРёСЂСѓРµС‚ РІС‹Р±СЂР°РЅРЅС‹Р№ РєР°С‚Р°Р»РѕРі. РЎРѕСЃС‚Р°РІР»СЏРµС‚ СЃСѓРјРјР°СЂРЅС‹Р№ СЃРїРёСЃРѕРє РѕС‚СЃР»РµР¶РёРІР°РµРјС‹С… С„Р°Р№Р»РѕРІ
      *
-     * @param directory  Сканируемый каталог
-     * @param watchList  Список отслеживаемых файлов
-     * @param ignoreList Список игнорируемых файлов
-     * @return Полный список отслеживаемых файлов. Файлы будут иметь относительные
+     * @param directory  РЎРєР°РЅРёСЂСѓРµРјС‹Р№ РєР°С‚Р°Р»РѕРі
+     * @param watchList  РЎРїРёСЃРѕРє РѕС‚СЃР»РµР¶РёРІР°РµРјС‹С… С„Р°Р№Р»РѕРІ
+     * @param ignoreList РЎРїРёСЃРѕРє РёРіРЅРѕСЂРёСЂСѓРµРјС‹С… С„Р°Р№Р»РѕРІ
+     * @return РџРѕР»РЅС‹Р№ СЃРїРёСЃРѕРє РѕС‚СЃР»РµР¶РёРІР°РµРјС‹С… С„Р°Р№Р»РѕРІ. Р¤Р°Р№Р»С‹ Р±СѓРґСѓС‚ РёРјРµС‚СЊ РѕС‚РЅРѕСЃРёС‚РµР»СЊРЅС‹Рµ
      */
     private String[] getFilesList(File directory, String[] watchList, String[] ignoreList) {
-        // Сканируем каталог
+        // РЎРєР°РЅРёСЂСѓРµРј РєР°С‚Р°Р»РѕРі
         DirectoryScanner dirList = new DirectoryScanner();
         dirList.setBasedir(directory);
         dirList.setIncludes(watchList);
         dirList.setExcludes(ignoreList);
         dirList.setCaseSensitive(false);
         dirList.scan();
-        // Отдаём список файлов для сравнения
+        // РћС‚РґР°С‘Рј СЃРїРёСЃРѕРє С„Р°Р№Р»РѕРІ РґР»СЏ СЃСЂР°РІРЅРµРЅРёСЏ
         return dirList.getIncludedFiles();
     }
 
     /**
-     * Выполняет сравнение файлов в исходном каталоге и каталоге деплоя
-     * Предоставляет выбор пользователю о необходимости обновить файл, либо оставить оригинальный
+     * Р’С‹РїРѕР»РЅСЏРµС‚ СЃСЂР°РІРЅРµРЅРёРµ С„Р°Р№Р»РѕРІ РІ РёСЃС…РѕРґРЅРѕРј РєР°С‚Р°Р»РѕРіРµ Рё РєР°С‚Р°Р»РѕРіРµ РґРµРїР»РѕСЏ
+     * РџСЂРµРґРѕСЃС‚Р°РІР»СЏРµС‚ РІС‹Р±РѕСЂ РїРѕР»СЊР·РѕРІР°С‚РµР»СЋ Рѕ РЅРµРѕР±С…РѕРґРёРјРѕСЃС‚Рё РѕР±РЅРѕРІРёС‚СЊ С„Р°Р№Р», Р»РёР±Рѕ РѕСЃС‚Р°РІРёС‚СЊ РѕСЂРёРіРёРЅР°Р»СЊРЅС‹Р№
      *
-     * @throws IOException  Ошибка при выполнении сравнения
+     * @throws IOException  РћС€РёР±РєР° РїСЂРё РІС‹РїРѕР»РЅРµРЅРёРё СЃСЂР°РІРЅРµРЅРёСЏ
      */
     public void doRetursiveDiff() throws IOException {
         diffBothAvailableFiles();
@@ -77,25 +77,25 @@ public class dirDiff {
     }
 
     /**
-     * Вначале обрабатывает файлы, которые присутствуют в обоих каталогах
+     * Р’РЅР°С‡Р°Р»Рµ РѕР±СЂР°Р±Р°С‚С‹РІР°РµС‚ С„Р°Р№Р»С‹, РєРѕС‚РѕСЂС‹Рµ РїСЂРёСЃСѓС‚СЃС‚РІСѓСЋС‚ РІ РѕР±РѕРёС… РєР°С‚Р°Р»РѕРіР°С…
      *
-     * @throws IOException  Ошибка при рекурсивной обработке
+     * @throws IOException  РћС€РёР±РєР° РїСЂРё СЂРµРєСѓСЂСЃРёРІРЅРѕР№ РѕР±СЂР°Р±РѕС‚РєРµ
      */
     private void diffBothAvailableFiles() throws IOException {
         for (String install : installFilesList) {
             for (String original : deployFileList) {
                 if (install.equalsIgnoreCase(original)) {
-                    Path newFile = Paths.get(extractedPath, install); // Новый файл из установки
-                    Path deployFile = Paths.get(deployPath, original);// Текущий файл из деплоя
-                    // Сравниваем хэши файлов
+                    Path newFile = Paths.get(extractedPath, install); // РќРѕРІС‹Р№ С„Р°Р№Р» РёР· СѓСЃС‚Р°РЅРѕРІРєРё
+                    Path deployFile = Paths.get(deployPath, original);// РўРµРєСѓС‰РёР№ С„Р°Р№Р» РёР· РґРµРїР»РѕСЏ
+                    // РЎСЂР°РІРЅРёРІР°РµРј С…СЌС€Рё С„Р°Р№Р»РѕРІ
                     if (! compareMD5digests(newFile, deployFile)) {
-                        // Предлагаем выбрать между старым и новым файлом
-                        // Для текстовых файлов отображаем версию выбора с diff
+                        // РџСЂРµРґР»Р°РіР°РµРј РІС‹Р±СЂР°С‚СЊ РјРµР¶РґСѓ СЃС‚Р°СЂС‹Рј Рё РЅРѕРІС‹Рј С„Р°Р№Р»РѕРј
+                        // Р”Р»СЏ С‚РµРєСЃС‚РѕРІС‹С… С„Р°Р№Р»РѕРІ РѕС‚РѕР±СЂР°Р¶Р°РµРј РІРµСЂСЃРёСЋ РІС‹Р±РѕСЂР° СЃ diff
                         if (isTextFile(install)) {
-                            if (!needChangeTextFile(newFile, deployFile))  // Если менять файл не нужно - копируем его из деплоя
+                            if (!needChangeTextFile(newFile, deployFile))  // Р•СЃР»Рё РјРµРЅСЏС‚СЊ С„Р°Р№Р» РЅРµ РЅСѓР¶РЅРѕ - РєРѕРїРёСЂСѓРµРј РµРіРѕ РёР· РґРµРїР»РѕСЏ
                                 Files.copy(deployFile, newFile);
                         } else {
-                            // Для бинарных - только спрашиваем
+                            // Р”Р»СЏ Р±РёРЅР°СЂРЅС‹С… - С‚РѕР»СЊРєРѕ СЃРїСЂР°С€РёРІР°РµРј
                             if (!needChangeBinaryFile(install))
                                 Files.copy(deployFile, newFile);
                         }
@@ -106,15 +106,15 @@ public class dirDiff {
     }
 
     /**
-     * Определение, является ли файл текстовым
+     * РћРїСЂРµРґРµР»РµРЅРёРµ, СЏРІР»СЏРµС‚СЃСЏ Р»Рё С„Р°Р№Р» С‚РµРєСЃС‚РѕРІС‹Рј
      *
-     * Определение производится по расширению файла
+     * РћРїСЂРµРґРµР»РµРЅРёРµ РїСЂРѕРёР·РІРѕРґРёС‚СЃСЏ РїРѕ СЂР°СЃС€РёСЂРµРЅРёСЋ С„Р°Р№Р»Р°
      *
-     * @param fileName  имя файла
-     * @return          true - текстовый, false - бинарный
+     * @param fileName  РёРјСЏ С„Р°Р№Р»Р°
+     * @return          true - С‚РµРєСЃС‚РѕРІС‹Р№, false - Р±РёРЅР°СЂРЅС‹Р№
      */
     private boolean isTextFile(String fileName) {
-        String textFileTypes[] = { ".txt", ".xml", ".properties" };
+        String textFileTypes[] = { ".txt", ".xml", ".properties", ".sql", ".conf" };
 
         for (String type : textFileTypes)
             if (fileName.toLowerCase().endsWith(type))
@@ -124,9 +124,9 @@ public class dirDiff {
     }
 
     /**
-     * Обработка новых файлов, которые отсутствуют в списке отслеживаемых в деплое
+     * РћР±СЂР°Р±РѕС‚РєР° РЅРѕРІС‹С… С„Р°Р№Р»РѕРІ, РєРѕС‚РѕСЂС‹Рµ РѕС‚СЃСѓС‚СЃС‚РІСѓСЋС‚ РІ СЃРїРёСЃРєРµ РѕС‚СЃР»РµР¶РёРІР°РµРјС‹С… РІ РґРµРїР»РѕРµ
      *
-     * @throws IOException  Ошибка при рекурсивной обработке
+     * @throws IOException  РћС€РёР±РєР° РїСЂРё СЂРµРєСѓСЂСЃРёРІРЅРѕР№ РѕР±СЂР°Р±РѕС‚РєРµ
      */
     private void applyNewFiles() throws IOException {
         boolean found;
@@ -138,8 +138,8 @@ public class dirDiff {
                 }
             }
             if (!found) {
-                // Определяем необходимость в новом файле
-                Path newFile = Paths.get(extractedPath, install); // Новый файл из установки
+                // РћРїСЂРµРґРµР»СЏРµРј РЅРµРѕР±С…РѕРґРёРјРѕСЃС‚СЊ РІ РЅРѕРІРѕРј С„Р°Р№Р»Рµ
+                Path newFile = Paths.get(extractedPath, install); // РќРѕРІС‹Р№ С„Р°Р№Р» РёР· СѓСЃС‚Р°РЅРѕРІРєРё
                 if (isTextFile(install)) {
                     if (! needAddOrSaveTextFile(newFile, true))
                         Files.delete(newFile);
@@ -152,7 +152,7 @@ public class dirDiff {
     }
 
     /**
-     * Обработка старых файлов, которых нет в новом релизе
+     * РћР±СЂР°Р±РѕС‚РєР° СЃС‚Р°СЂС‹С… С„Р°Р№Р»РѕРІ, РєРѕС‚РѕСЂС‹С… РЅРµС‚ РІ РЅРѕРІРѕРј СЂРµР»РёР·Рµ
      *
      * @throws IOException
      */
@@ -166,15 +166,15 @@ public class dirDiff {
                 }
             }
             if (!found) {
-                // Определяем необходимость сохранения старого файла
-                Path oldFile = Paths.get(deployPath, original); // Текущий файл деплоя
-                Path savedFile = Paths.get(extractedPath, original); // Сохраняемый файл
-                Path parrent = savedFile.getParent();   // Родительский каталог сохраняемого файла, для воссоздания структуры
+                // РћРїСЂРµРґРµР»СЏРµРј РЅРµРѕР±С…РѕРґРёРјРѕСЃС‚СЊ СЃРѕС…СЂР°РЅРµРЅРёСЏ СЃС‚Р°СЂРѕРіРѕ С„Р°Р№Р»Р°
+                Path oldFile = Paths.get(deployPath, original); // РўРµРєСѓС‰РёР№ С„Р°Р№Р» РґРµРїР»РѕСЏ
+                Path savedFile = Paths.get(extractedPath, original); // РЎРѕС…СЂР°РЅСЏРµРјС‹Р№ С„Р°Р№Р»
+                Path parrent = savedFile.getParent();   // Р РѕРґРёС‚РµР»СЊСЃРєРёР№ РєР°С‚Р°Р»РѕРі СЃРѕС…СЂР°РЅСЏРµРјРѕРіРѕ С„Р°Р№Р»Р°, РґР»СЏ РІРѕСЃСЃРѕР·РґР°РЅРёСЏ СЃС‚СЂСѓРєС‚СѓСЂС‹
                 if (isTextFile(original)) {
                     if (needAddOrSaveTextFile(oldFile, false)) {
-                        // Воссоздаём структуру каталогов и копируем
+                        // Р’РѕСЃСЃРѕР·РґР°С‘Рј СЃС‚СЂСѓРєС‚СѓСЂСѓ РєР°С‚Р°Р»РѕРіРѕРІ Рё РєРѕРїРёСЂСѓРµРј
                         Files.createDirectories(parrent);
-                        // Копируем из деплоя в новую установку
+                        // РљРѕРїРёСЂСѓРµРј РёР· РґРµРїР»РѕСЏ РІ РЅРѕРІСѓСЋ СѓСЃС‚Р°РЅРѕРІРєСѓ
                         Files.copy(oldFile, savedFile);
                     }
                 } else {
@@ -188,12 +188,12 @@ public class dirDiff {
     }
 
     /**
-     * Необходимость добавления нового либо удаления старого текстового файла
+     * РќРµРѕР±С…РѕРґРёРјРѕСЃС‚СЊ РґРѕР±Р°РІР»РµРЅРёСЏ РЅРѕРІРѕРіРѕ Р»РёР±Рѕ СѓРґР°Р»РµРЅРёСЏ СЃС‚Р°СЂРѕРіРѕ С‚РµРєСЃС‚РѕРІРѕРіРѕ С„Р°Р№Р»Р°
      *
-     * @param changeFile    заменяемый файл
-     * @param isNewFile     true - новый файл
-     * @return              необходимость замены
-     * @throws IOException  Ошибка чтения текстового файла
+     * @param changeFile    Р·Р°РјРµРЅСЏРµРјС‹Р№ С„Р°Р№Р»
+     * @param isNewFile     true - РЅРѕРІС‹Р№ С„Р°Р№Р»
+     * @return              РЅРµРѕР±С…РѕРґРёРјРѕСЃС‚СЊ Р·Р°РјРµРЅС‹
+     * @throws IOException  РћС€РёР±РєР° С‡С‚РµРЅРёСЏ С‚РµРєСЃС‚РѕРІРѕРіРѕ С„Р°Р№Р»Р°
      */
     private boolean needAddOrSaveTextFile(Path changeFile, boolean isNewFile) throws IOException {
         if (isNewFile) {
@@ -242,11 +242,11 @@ public class dirDiff {
     }
 
     /**
-     * Необходимость добавления нового либо удаления старого бинарного файла
+     * РќРµРѕР±С…РѕРґРёРјРѕСЃС‚СЊ РґРѕР±Р°РІР»РµРЅРёСЏ РЅРѕРІРѕРіРѕ Р»РёР±Рѕ СѓРґР°Р»РµРЅРёСЏ СЃС‚Р°СЂРѕРіРѕ Р±РёРЅР°СЂРЅРѕРіРѕ С„Р°Р№Р»Р°
      *
-     * @param fileName  заменяемый файл
-     * @param isNewFile true - новый файл
-     * @return          необходимость замены
+     * @param fileName  Р·Р°РјРµРЅСЏРµРјС‹Р№ С„Р°Р№Р»
+     * @param isNewFile true - РЅРѕРІС‹Р№ С„Р°Р№Р»
+     * @return          РЅРµРѕР±С…РѕРґРёРјРѕСЃС‚СЊ Р·Р°РјРµРЅС‹
      */
     private boolean needAddOrSaveBinaryFile(String fileName, boolean isNewFile) {
         if (isNewFile) {
@@ -277,10 +277,10 @@ public class dirDiff {
     }
 
     /**
-     * Необходимость обновления бинарного файла
+     * РќРµРѕР±С…РѕРґРёРјРѕСЃС‚СЊ РѕР±РЅРѕРІР»РµРЅРёСЏ Р±РёРЅР°СЂРЅРѕРіРѕ С„Р°Р№Р»Р°
      *
-     * @param fileName  Имя файла
-     * @return          Необходимость обновления
+     * @param fileName  РРјСЏ С„Р°Р№Р»Р°
+     * @return          РќРµРѕР±С…РѕРґРёРјРѕСЃС‚СЊ РѕР±РЅРѕРІР»РµРЅРёСЏ
      */
     private boolean needChangeBinaryFile(String fileName) {
         System.out.println("Found difference in binary file " + fileName + ":");
@@ -302,12 +302,12 @@ public class dirDiff {
     }
 
     /**
-     * Необходимость обновления текстового файла
+     * РќРµРѕР±С…РѕРґРёРјРѕСЃС‚СЊ РѕР±РЅРѕРІР»РµРЅРёСЏ С‚РµРєСЃС‚РѕРІРѕРіРѕ С„Р°Р№Р»Р°
      *
-     * @param newFile       Новый файл
-     * @param deployFile    Файл из деплоя
-     * @return              Необходимость замены. true - оставляем новый файл. false - копируем файл из
-     * деплоя в распакованный каталог
+     * @param newFile       РќРѕРІС‹Р№ С„Р°Р№Р»
+     * @param deployFile    Р¤Р°Р№Р» РёР· РґРµРїР»РѕСЏ
+     * @return              РќРµРѕР±С…РѕРґРёРјРѕСЃС‚СЊ Р·Р°РјРµРЅС‹. true - РѕСЃС‚Р°РІР»СЏРµРј РЅРѕРІС‹Р№ С„Р°Р№Р». false - РєРѕРїРёСЂСѓРµРј С„Р°Р№Р» РёР·
+     * РґРµРїР»РѕСЏ РІ СЂР°СЃРїР°РєРѕРІР°РЅРЅС‹Р№ РєР°С‚Р°Р»РѕРі
      * @throws IOException
      */
     private boolean needChangeTextFile(Path newFile, Path deployFile) throws IOException {
@@ -333,11 +333,11 @@ public class dirDiff {
     }
 
     /**
-     * Отображает разницу в виде diff-а между двумя текстовыми файлами
+     * РћС‚РѕР±СЂР°Р¶Р°РµС‚ СЂР°Р·РЅРёС†Сѓ РІ РІРёРґРµ diff-Р° РјРµР¶РґСѓ РґРІСѓРјСЏ С‚РµРєСЃС‚РѕРІС‹РјРё С„Р°Р№Р»Р°РјРё
      *
-     * @param newFile       Новый файл
-     * @param deployFile    Текущий файл
-     * @throws IOException  Ошибка чтения одного из файлов
+     * @param newFile       РќРѕРІС‹Р№ С„Р°Р№Р»
+     * @param deployFile    РўРµРєСѓС‰РёР№ С„Р°Р№Р»
+     * @throws IOException  РћС€РёР±РєР° С‡С‚РµРЅРёСЏ РѕРґРЅРѕРіРѕ РёР· С„Р°Р№Р»РѕРІ
      */
     private void showTextFileDiff(Path newFile, Path deployFile) throws IOException {
         LinkedList<String> originalFile = readFileToList(deployFile);
@@ -351,11 +351,11 @@ public class dirDiff {
     }
 
     /**
-     * Считывает из файла в связанный список
+     * РЎС‡РёС‚С‹РІР°РµС‚ РёР· С„Р°Р№Р»Р° РІ СЃРІСЏР·Р°РЅРЅС‹Р№ СЃРїРёСЃРѕРє
      *
-     * @param file  Файл
-     * @return      Связанный список
-     * @throws IOException  Ошибка чтения файла
+     * @param file  Р¤Р°Р№Р»
+     * @return      РЎРІСЏР·Р°РЅРЅС‹Р№ СЃРїРёСЃРѕРє
+     * @throws IOException  РћС€РёР±РєР° С‡С‚РµРЅРёСЏ С„Р°Р№Р»Р°
      */
     private LinkedList<String> readFileToList(Path file) throws IOException {
         LinkedList<String> result = new LinkedList<>();
@@ -369,12 +369,12 @@ public class dirDiff {
     }
 
     /**
-     * Сравнивает файлы по MD5-хешу
+     * РЎСЂР°РІРЅРёРІР°РµС‚ С„Р°Р№Р»С‹ РїРѕ MD5-С…РµС€Сѓ
      *
-     * @param one Первый файл
-     * @param two Второй файл
-     * @return Совпадает либо нет
-     * @throws IOException Ошибка ввода-вывода при выполнении чтения файла, при сравнении
+     * @param one РџРµСЂРІС‹Р№ С„Р°Р№Р»
+     * @param two Р’С‚РѕСЂРѕР№ С„Р°Р№Р»
+     * @return РЎРѕРІРїР°РґР°РµС‚ Р»РёР±Рѕ РЅРµС‚
+     * @throws IOException РћС€РёР±РєР° РІРІРѕРґР°-РІС‹РІРѕРґР° РїСЂРё РІС‹РїРѕР»РЅРµРЅРёРё С‡С‚РµРЅРёСЏ С„Р°Р№Р»Р°, РїСЂРё СЃСЂР°РІРЅРµРЅРёРё
      */
     private boolean compareMD5digests(Path one, Path two) throws IOException {
         byte oneDigest[] = getMD5digest(one);
@@ -388,11 +388,11 @@ public class dirDiff {
     }
 
     /**
-     * Рассчёт MD5-хеша файла
+     * Р Р°СЃСЃС‡С‘С‚ MD5-С…РµС€Р° С„Р°Р№Р»Р°
      *
-     * @param file Входной файл
-     * @return MD5-хеш
-     * @throws IOException Ошибка ввода-вывода при чтении файла
+     * @param file Р’С…РѕРґРЅРѕР№ С„Р°Р№Р»
+     * @return MD5-С…РµС€
+     * @throws IOException РћС€РёР±РєР° РІРІРѕРґР°-РІС‹РІРѕРґР° РїСЂРё С‡С‚РµРЅРёРё С„Р°Р№Р»Р°
      */
     private byte[] getMD5digest(Path file) throws IOException {
         try {
