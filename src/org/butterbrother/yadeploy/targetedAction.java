@@ -171,6 +171,7 @@ public class targetedAction implements staticValues {
 
     /**
      * Разворачивает релиз/бекап из архива в деплой
+     * Статичная лапша, но и так сойдёт
      *
      * @param settings  Настройки из файла настроек
      * @param direction Направление и разрешение
@@ -284,6 +285,12 @@ public class targetedAction implements staticValues {
             } catch (IOException err) {
                 System.err.println("Warn: unable to delete application temporary path in system temp");
             }
+
+        // Отображаем статистику
+        System.out.println("Archive statistic:");
+        archiveStat.showStatistic();
+        System.out.println("Deploy statistic:");
+        deployStat.showStatistic();
     }
 
     /**
@@ -385,7 +392,7 @@ public class targetedAction implements staticValues {
                 }
             } else {
                 // Иначе маской становится имя каталога деплоя
-                String filter[] = {direction.getDestinationPath().getFileName().toString()};
+                String filter[] = {direction.getDestinationPath().getFileName().toString() + "*"};
                 installFind.setIncludes(filter);
             }
             installFind.scan();
@@ -438,7 +445,7 @@ public class targetedAction implements staticValues {
 
                     index = 0;
                     for (String item : list) {
-                        System.out.println(index++ + " " + item);
+                        System.out.println(++index + " " + item);
                     }
                     System.out.print("[q - exit] >> ");
                     try {
@@ -502,29 +509,33 @@ public class targetedAction implements staticValues {
         forDel.setIncludes(deleteList);
         forDel.scan();
         Formatter progressBar = new Formatter(System.out);
-        progressBar.format("Delete files from delete list:\n");
-        for (String item : forDel.getIncludedFiles()) {
-            progressBar.format("-- Delete file: %s\n", item);
-            Path removeFile = Paths.get(extractedPath.toString(), item);
-            Files.delete(removeFile);
+        if ((forDel.getIncludedFilesCount() + forDel.getIncludedDirsCount()) > 0) {
+            progressBar.format("Delete files from delete list:\n");
+            for (String item : forDel.getIncludedFiles()) {
+                progressBar.format("-- Delete file: %s\n", item);
+                Path removeFile = Paths.get(extractedPath.toString(), item);
+                Files.delete(removeFile);
+            }
+            for (String item : forDel.getIncludedDirectories()) {
+                progressBar.format("-- Delete directory: %s\n", item);
+                Path removeDir = Paths.get(extractedPath.toString(), item);
+                FileUtils.deleteDirectory(removeDir.toFile());
+            }
+            progressBar.format("Delete files from list complete\n");
         }
-        for (String item : forDel.getIncludedDirectories()) {
-            progressBar.format("-- Delete directory: %s\n", item);
-            Path removeDir = Paths.get(extractedPath.toString(), item);
-            FileUtils.deleteDirectory(removeDir.toFile());
-        }
-        progressBar.format("Delete files from list complete\n");
     }
 
     /**
      * Проверка верного типа файла, годного для деплоя.
      * Приложение поддерживает только zip-архивы:
      * .zip и .war
+     * Не проверяются - распакованные каталоги.
      *
      * @param releaseFile   Проверяемый файл
      * @return              Поддерживаемость файла приложением
      */
     private static boolean validateFileType(Path releaseFile) {
+        if (Files.isDirectory(releaseFile)) return true;
         String fileStringPath = releaseFile.toString().toLowerCase();
         return (fileStringPath.endsWith(".zip") || (fileStringPath.endsWith(".war")));
     }

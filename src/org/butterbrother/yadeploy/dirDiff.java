@@ -17,6 +17,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Formatter;
 import java.util.LinkedList;
 
 /**
@@ -68,7 +69,7 @@ public class dirDiff {
      * Выполняет сравнение файлов в исходном каталоге и каталоге деплоя
      * Предоставляет выбор пользователю о необходимости обновить файл, либо оставить оригинальный
      *
-     * @throws IOException  Ошибка при выполнении сравнения
+     * @throws IOException Ошибка при выполнении сравнения
      */
     public void doRetursiveDiff() throws IOException {
         diffBothAvailableFiles();
@@ -79,7 +80,7 @@ public class dirDiff {
     /**
      * Вначале обрабатывает файлы, которые присутствуют в обоих каталогах
      *
-     * @throws IOException  Ошибка при рекурсивной обработке
+     * @throws IOException Ошибка при рекурсивной обработке
      */
     private void diffBothAvailableFiles() throws IOException {
         for (String install : installFilesList) {
@@ -88,16 +89,20 @@ public class dirDiff {
                     Path newFile = Paths.get(extractedPath, install); // Новый файл из установки
                     Path deployFile = Paths.get(deployPath, original);// Текущий файл из деплоя
                     // Сравниваем хэши файлов
-                    if (! compareMD5digests(newFile, deployFile)) {
+                    if (!compareMD5digests(newFile, deployFile)) {
                         // Предлагаем выбрать между старым и новым файлом
                         // Для текстовых файлов отображаем версию выбора с diff
                         if (isTextFile(install)) {
-                            if (!needChangeTextFile(newFile, deployFile))  // Если менять файл не нужно - копируем его из деплоя
+                            if (!needChangeTextFile(newFile, deployFile)) {  // Если менять файл не нужно - копируем его из деплоя
+                                Files.deleteIfExists(newFile);
                                 Files.copy(deployFile, newFile);
+                            }
                         } else {
                             // Для бинарных - только спрашиваем
-                            if (!needChangeBinaryFile(install))
+                            if (!needChangeBinaryFile(install)) {
+                                Files.deleteIfExists(newFile);
                                 Files.copy(deployFile, newFile);
+                            }
                         }
                     }
                 }
@@ -107,14 +112,14 @@ public class dirDiff {
 
     /**
      * Определение, является ли файл текстовым
-     *
+     * <p/>
      * Определение производится по расширению файла
      *
-     * @param fileName  имя файла
-     * @return          true - текстовый, false - бинарный
+     * @param fileName имя файла
+     * @return true - текстовый, false - бинарный
      */
     private boolean isTextFile(String fileName) {
-        String textFileTypes[] = { ".txt", ".xml", ".properties", ".sql", ".conf" };
+        String textFileTypes[] = {".txt", ".xml", ".properties", ".sql", ".conf", ".ini"};
 
         for (String type : textFileTypes)
             if (fileName.toLowerCase().endsWith(type))
@@ -126,7 +131,7 @@ public class dirDiff {
     /**
      * Обработка новых файлов, которые отсутствуют в списке отслеживаемых в деплое
      *
-     * @throws IOException  Ошибка при рекурсивной обработке
+     * @throws IOException Ошибка при рекурсивной обработке
      */
     private void applyNewFiles() throws IOException {
         boolean found;
@@ -141,10 +146,10 @@ public class dirDiff {
                 // Определяем необходимость в новом файле
                 Path newFile = Paths.get(extractedPath, install); // Новый файл из установки
                 if (isTextFile(install)) {
-                    if (! needAddOrSaveTextFile(newFile, true))
+                    if (!needAddOrSaveTextFile(newFile, true))
                         Files.delete(newFile);
                 } else {
-                    if (! needAddOrSaveBinaryFile(install, true))
+                    if (!needAddOrSaveBinaryFile(install, true))
                         Files.delete(newFile);
                 }
             }
@@ -190,19 +195,18 @@ public class dirDiff {
     /**
      * Необходимость добавления нового либо удаления старого текстового файла
      *
-     * @param changeFile    заменяемый файл
-     * @param isNewFile     true - новый файл
-     * @return              необходимость замены
-     * @throws IOException  Ошибка чтения текстового файла
+     * @param changeFile заменяемый файл
+     * @param isNewFile  true - новый файл
+     * @return необходимость замены
+     * @throws IOException Ошибка чтения текстового файла
      */
     private boolean needAddOrSaveTextFile(Path changeFile, boolean isNewFile) throws IOException {
-        if (isNewFile) {
-            System.out.println("Found new text file " + changeFile.getFileName().toString() + ":");
-        } else {
-            System.out.println("File " + changeFile.getFileName().toString() + " not found in new release:");
-        }
-
         while (true) {
+            if (isNewFile) {
+                System.out.println("Found new text file " + changeFile.getFileName().toString() + ":");
+            } else {
+                System.out.println("File " + changeFile.getFileName().toString() + " not found in new release:");
+            }
             if (isNewFile) {
                 System.out.println("1. Add new file");
                 System.out.println("2. Skip new file");
@@ -217,8 +221,10 @@ public class dirDiff {
             try {
                 int menuItem = Integer.parseInt(userSelect);
                 switch (menuItem) {
-                    case 1: return true;
-                    case 2: return false;
+                    case 1:
+                        return true;
+                    case 2:
+                        return false;
                     case 3:
                         try (BufferedReader reader = new BufferedReader(new InputStreamReader(Files.newInputStream(changeFile)), 4096)) {
                             String buffer;
@@ -228,7 +234,7 @@ public class dirDiff {
                                 System.out.println("---------- Old file: ----------");
                             }
 
-                            while ((buffer = reader.readLine())!=null) {
+                            while ((buffer = reader.readLine()) != null) {
                                 System.out.println(buffer);
                             }
                             System.out.println("------------ End --------------");
@@ -246,15 +252,15 @@ public class dirDiff {
      *
      * @param fileName  заменяемый файл
      * @param isNewFile true - новый файл
-     * @return          необходимость замены
+     * @return необходимость замены
      */
     private boolean needAddOrSaveBinaryFile(String fileName, boolean isNewFile) {
-        if (isNewFile) {
-            System.out.println("Found new text file " + fileName + ":");
-        } else {
-            System.out.println("File " + fileName + " not found in new release:");
-        }
         while (true) {
+            if (isNewFile) {
+                System.out.println("Found new text file " + fileName + ":");
+            } else {
+                System.out.println("File " + fileName + " not found in new release:");
+            }
             if (isNewFile) {
                 System.out.println("1. Add new file");
                 System.out.println("2. Skip new file");
@@ -267,8 +273,10 @@ public class dirDiff {
             try {
                 int menuItem = Integer.parseInt(userSelect);
                 switch (menuItem) {
-                    case 1: return true;
-                    case 2: return false;
+                    case 1:
+                        return true;
+                    case 2:
+                        return false;
                 }
             } catch (NullPointerException | NumberFormatException err) {
                 System.out.println("Invalid select");
@@ -279,12 +287,12 @@ public class dirDiff {
     /**
      * Необходимость обновления бинарного файла
      *
-     * @param fileName  Имя файла
-     * @return          Необходимость обновления
+     * @param fileName Имя файла
+     * @return Необходимость обновления
      */
     private boolean needChangeBinaryFile(String fileName) {
-        System.out.println("Found difference in binary file " + fileName + ":");
         while (true) {
+            System.out.println("Found difference in binary file " + fileName + ":");
             System.out.println("1. Apply new file");
             System.out.println("2. Save old file");
             System.out.print(">> ");
@@ -292,8 +300,10 @@ public class dirDiff {
             try {
                 int menuItem = Integer.parseInt(userSelect);
                 switch (menuItem) {
-                    case 1: return true;
-                    case 2: return false;
+                    case 1:
+                        return true;
+                    case 2:
+                        return false;
                 }
             } catch (NullPointerException | NumberFormatException err) {
                 System.out.println("Invalid select");
@@ -304,15 +314,15 @@ public class dirDiff {
     /**
      * Необходимость обновления текстового файла
      *
-     * @param newFile       Новый файл
-     * @param deployFile    Файл из деплоя
-     * @return              Необходимость замены. true - оставляем новый файл. false - копируем файл из
+     * @param newFile    Новый файл
+     * @param deployFile Файл из деплоя
+     * @return Необходимость замены. true - оставляем новый файл. false - копируем файл из
      * деплоя в распакованный каталог
      * @throws IOException
      */
     private boolean needChangeTextFile(Path newFile, Path deployFile) throws IOException {
-        System.out.println("Found difference in text file " + newFile.getFileName().toString() + ":");
         while (true) {
+            System.out.println("Found difference in text file " + newFile.getFileName().toString() + ":");
             System.out.println("1. Apply new file");
             System.out.println("2. Save old file");
             System.out.println("3. Show difference");
@@ -321,9 +331,12 @@ public class dirDiff {
             try {
                 int menuItem = Integer.parseInt(userSelect);
                 switch (menuItem) {
-                    case 1: return true;
-                    case 2: return false;
-                    case 3: showTextFileDiff(newFile, deployFile);
+                    case 1:
+                        return true;
+                    case 2:
+                        return false;
+                    case 3:
+                        showTextFileDiff(newFile, deployFile);
                         break;
                 }
             } catch (NullPointerException | NumberFormatException err) {
@@ -335,17 +348,24 @@ public class dirDiff {
     /**
      * Отображает разницу в виде diff-а между двумя текстовыми файлами
      *
-     * @param newFile       Новый файл
-     * @param deployFile    Текущий файл
-     * @throws IOException  Ошибка чтения одного из файлов
+     * @param newFile    Новый файл
+     * @param deployFile Текущий файл
+     * @throws IOException Ошибка чтения одного из файлов
      */
     private void showTextFileDiff(Path newFile, Path deployFile) throws IOException {
+        long position;
         LinkedList<String> originalFile = readFileToList(deployFile);
         LinkedList<String> overrideFile = readFileToList(newFile);
         Patch difference = DiffUtils.diff(originalFile, overrideFile);
+        Formatter patchShow = new Formatter(System.out);
         System.out.println("---------- Difference: ----------");
         for (Delta item : difference.getDeltas()) {
-            System.out.println(item);
+            position = item.getOriginal().getPosition();
+            for (Object oldLine : item.getOriginal().getLines())
+                patchShow.format("%03d - %s\n", position++, oldLine);
+            position = item.getRevised().getPosition();
+            for (Object newLine : item.getRevised().getLines())
+                patchShow.format("%03d + %s\n", position++, newLine);
         }
         System.out.println("------------- End ---------------");
     }
@@ -353,9 +373,9 @@ public class dirDiff {
     /**
      * Считывает из файла в связанный список
      *
-     * @param file  Файл
-     * @return      Связанный список
-     * @throws IOException  Ошибка чтения файла
+     * @param file Файл
+     * @return Связанный список
+     * @throws IOException Ошибка чтения файла
      */
     private LinkedList<String> readFileToList(Path file) throws IOException {
         LinkedList<String> result = new LinkedList<>();

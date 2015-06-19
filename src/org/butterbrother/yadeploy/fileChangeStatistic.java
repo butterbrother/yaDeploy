@@ -192,17 +192,6 @@ public class fileChangeStatistic {
     }
 
     /**
-     * Возвращает дату модификации вышестоящего каталога либо архива
-     *
-     * @return Дата модификации
-     */
-    public Calendar getParentModTime() {
-        Calendar modTime = Calendar.getInstance();
-        modTime.setTimeInMillis(parentModTime);
-        return modTime;
-    }
-
-    /**
      * Устанавливает дату и время модификации вышестоящего каталога либо архива.
      *
      * @param file Каталог либо файл
@@ -210,5 +199,84 @@ public class fileChangeStatistic {
      */
     public void setParentModTime(Path file) throws IOException {
         setParentModTime(Files.getLastModifiedTime(file).toMillis());
+    }
+
+    /**
+     * Отображение статистики по файлам
+     */
+    public void showStatistic() {
+        Formatter outStat = new Formatter(System.out);
+
+        // Дата модификации архива-вышестоящего каталога
+        outStat.format("Container modification date: ");
+        if (this.parentModTime <= 0) {
+            outStat.format("not available\n");
+        } else {
+            Calendar parentTime = Calendar.getInstance();
+            parentTime.setTimeInMillis(this.parentModTime);
+            outStat.format("%TY-%<Tm-%<Td %<TH:%<TM\n", parentTime);
+        }
+
+        // Самый старый файл
+        outStat.format("Oldest file modification date: ");
+        if (this.oldestFile == Long.MAX_VALUE || this.oldestFile <= 0) {
+            outStat.format("not available\n");
+        } else {
+            Calendar oldestFile = Calendar.getInstance();
+            oldestFile.setTimeInMillis(this.oldestFile);
+            outStat.format("%TY-%<Tm-%<Td %<TH:%<TM\n", oldestFile);
+        }
+
+        // Самый новый файл
+        outStat.format("Newest file modification date: ");
+        if (this.newestFile <= 0) {
+            outStat.format("not available\n");
+        } else {
+            Calendar newestFile = Calendar.getInstance();
+            newestFile.setTimeInMillis(this.newestFile);
+            outStat.format("%TY-%<Tm-%<Td %<TH:%<TM\n", newestFile);
+        }
+
+        // Прочие файлы, статистика
+        outStat.format("Other files modification date count:\n");
+        for (Map.Entry<String, Integer> stat: getAllFilesModStatistic().entrySet()) {
+            outStat.format("-- %s - %d\n", stat.getKey(), stat.getValue());
+        }
+    }
+
+    /**
+     * Генерация статистики по файлам, даты группируются в точности до минуты
+     *
+     * @return  Статистика
+     */
+    public TreeMap<String, Integer> getAllFilesModStatistic() {
+        boolean found;
+        TreeMap<String, Integer> result = new TreeMap<>();
+        // Конвертируем целочисленные даты в даты, затем в форматированные строки
+        // Попутно сравниваем строки с уже имеющимися в результате
+        for (Map.Entry<Long, Integer> statValue : mostModTime.entrySet()) {
+            // Преобразуем в календарь
+            Calendar dateTime = Calendar.getInstance();
+            dateTime.setTimeInMillis(statValue.getKey());
+            // Затем в строку, усекаем дату до минуты
+            String formattedDate = new Formatter().format("%TY-%<Tm-%<Td %<TH:%<TM", dateTime).toString();
+
+            // Далее ищем в результатах
+            found = false;
+            for (Map.Entry<String, Integer> comp : result.entrySet()) {
+                if (comp.getKey().equals(formattedDate)) {
+                    // Если уже есть - складываем с имеющимся
+                    comp.setValue(comp.getValue() + statValue.getValue());
+                    found = true;
+                    break;
+                }
+            }
+
+            // Иначе добавляем новую запись
+            if (!found)
+                result.put(formattedDate, statValue.getValue());
+        }
+
+        return result;
     }
 }
