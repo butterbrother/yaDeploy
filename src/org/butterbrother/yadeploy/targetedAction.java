@@ -296,8 +296,8 @@ public class targetedAction implements staticValues {
     /**
      * Выполняет очистку каталога деплоя, игнорируя файлы и каталоги из игнорируемого списка
      *
-     * @param deployPath    Каталог деплоя
-     * @param ignoreList    Игнорируемый список
+     * @param deployPath Каталог деплоя
+     * @param ignoreList Игнорируемый список
      */
     private static void cleanupDeploy(Path deployPath, String ignoreList[], boolean isInstall) {
         DirectoryScanner cleanList = new DirectoryScanner();
@@ -326,8 +326,8 @@ public class targetedAction implements staticValues {
     /**
      * Получение списка наблюдаемых файлов
      *
-     * @param settings  Файл настроек
-     * @return          Список наблюдаемых файлов. Если их нет - массив будет с 0 элементов
+     * @param settings Файл настроек
+     * @return Список наблюдаемых файлов. Если их нет - массив будет с 0 элементов
      */
     private static String[] getWatchList(configStorage settings) {
         try {
@@ -341,8 +341,8 @@ public class targetedAction implements staticValues {
     /**
      * Получение списка игнорируемых файлов из конечного деплоя
      *
-     * @param settings  Файл настроек
-     * @return          Список игнорируемых файлов. Если их нет - массив будет с 0 элементов.
+     * @param settings Файл настроек
+     * @return Список игнорируемых файлов. Если их нет - массив будет с 0 элементов.
      */
     private static String[] getIgnoreList(configStorage settings) {
         try {
@@ -356,8 +356,8 @@ public class targetedAction implements staticValues {
     /**
      * Получение списка удаляемых файлов из конечного деплоя
      *
-     * @param settings  Файл настроек
-     * @return          Список игнорируемых файлов. Если их нет - массив будет с 0 элементов.
+     * @param settings Файл настроек
+     * @return Список игнорируемых файлов. Если их нет - массив будет с 0 элементов.
      */
     private static String[] getDeleteList(configStorage settings) {
         try {
@@ -371,10 +371,10 @@ public class targetedAction implements staticValues {
     /**
      * Получение каталога/файла релиза
      *
-     * @param settings      Настройки из файла настроек
-     * @param direction     Файлы источника и получателя, разрешение
-     * @param isInstall     true - установка, false - восстановление
-     * @return              Файл/каталог с релизом либо бекапом
+     * @param settings  Настройки из файла настроек
+     * @param direction Файлы источника и получателя, разрешение
+     * @param isInstall true - установка, false - восстановление
+     * @return Файл/каталог с релизом либо бекапом
      */
     private static Path getInstallFilePath(configStorage settings, ticket direction, boolean isInstall) {
         // Если указана версия релиза/бекапа, то сначала попытаемся найти её
@@ -423,7 +423,7 @@ public class targetedAction implements staticValues {
                     // Об этом надо объявить
                     Path releaseFile = Paths.get(direction.getSourceFullName(), value);
                     if (Files.isRegularFile(releaseFile)) {
-                        if (! validateFileType(releaseFile)) {
+                        if (!validateFileType(releaseFile)) {
                             System.err.println("File " + value + " not is zip-archive, unsupported, skip from list");
                             item.remove();
                         }
@@ -481,7 +481,7 @@ public class targetedAction implements staticValues {
                     System.exit(EXIT_NORMAL);
                 }
                 // Проверяем, что если выбран файл - то он zip
-                if (! validateFileType(installPath))
+                if (!validateFileType(installPath))
                     installRestoreError("unsupported file. Must be a zip-file or unpacked directory", isInstall);
             } catch (IOException err) {
                 installRestoreError("I/O error", err, isInstall);
@@ -499,9 +499,9 @@ public class targetedAction implements staticValues {
     /**
      * Удаление из временного каталога с распакованными файлами файлов из списка для удаления
      *
-     * @param extractedPath     Каталог распакованных файлов
-     * @param deleteList        Список файлов для удаления
-     * @throws IOException      Ошибка ввода-вывода при выполнении какого-либо действия
+     * @param extractedPath Каталог распакованных файлов
+     * @param deleteList    Список файлов для удаления
+     * @throws IOException Ошибка ввода-вывода при выполнении какого-либо действия
      */
     private static void deleteExcluded(Path extractedPath, String[] deleteList) throws IOException {
         DirectoryScanner forDel = new DirectoryScanner();
@@ -531,8 +531,8 @@ public class targetedAction implements staticValues {
      * .zip и .war
      * Не проверяются - распакованные каталоги.
      *
-     * @param releaseFile   Проверяемый файл
-     * @return              Поддерживаемость файла приложением
+     * @param releaseFile Проверяемый файл
+     * @return Поддерживаемость файла приложением
      */
     private static boolean validateFileType(Path releaseFile) {
         if (Files.isDirectory(releaseFile)) return true;

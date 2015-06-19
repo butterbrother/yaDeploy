@@ -2,7 +2,8 @@ package org.butterbrother.yadeploy;
 
 import org.apache.tools.ant.DirectoryScanner;
 
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -27,6 +28,57 @@ public class fileChangeStatistic {
     private long parentModTime = 0;
 
     public fileChangeStatistic() {
+    }
+
+    /**
+     * Определение кодировки zip-архива.
+     * <p/>
+     * Выполняет банальный перебор по всем возможным кодировкам.
+     * Возвращает ту, с помощью которой удалось перечислить файлы в архиве.
+     *
+     * @param zipFile zip-архив
+     * @return Кодировка, подходящая для открытия
+     * @throws IOException Если ничего не нашлось/ошибка открытия файла
+     */
+    public static Charset detectZipEncoding(Path zipFile) throws IOException {
+        // Некорректные для имени файлов символы
+        String incorrectCharacters[] = {"\"", "*", ":", "<", ">", "?", "|"};
+        // Получаем все возможные кодировки
+        LinkedHashMap<String, Charset> allCharsets = new LinkedHashMap<>();
+        // Вставляем в начало самые вероятные - это киррилица DOS, текущая и кириллица Windows
+        allCharsets.put("ru-dos", Charset.forName("CP866"));
+        allCharsets.put("current-system", Charset.defaultCharset());
+        allCharsets.put("ru-win", Charset.forName("WINDOWS-1251"));
+        allCharsets.put("utf8_ru", Charset.forName("UTF-8"));
+        // Далее по списку вставляем вообще все доступные комбинации
+        allCharsets.putAll(Charset.availableCharsets());
+        // А теперь пробуем перечислить все файлы с данными кодировками
+        for (Map.Entry<String, Charset> probe : allCharsets.entrySet()) {
+            encodeTry:
+            {
+                try (ZipInputStream zip = new ZipInputStream(new BufferedInputStream(Files.newInputStream(zipFile), 4096), probe.getValue())) {
+                    // Прокручиваем архив
+                    ZipEntry compressed;
+                    while ((compressed = zip.getNextEntry()) != null) {
+                        for (String item : incorrectCharacters) {
+                            if (compressed.getName().contains(item)) {
+                                // Если имя файла содержит неверные символы - сбрасываем
+                                zip.closeEntry();
+                                break encodeTry;
+                            }
+                        }
+                        zip.closeEntry();
+                    }
+                } catch (IllegalArgumentException ignore) {
+                    // Все исключения мужественно игнорируем. Почти все
+                    continue;
+                }
+                return probe.getValue();
+            }
+        }
+
+        // Если ничего не нашли
+        throw new IOException("Unable detect ZIP file encoding");
     }
 
     /**
@@ -141,57 +193,6 @@ public class fileChangeStatistic {
     }
 
     /**
-     * Определение кодировки zip-архива.
-     *
-     * Выполняет банальный перебор по всем возможным кодировкам.
-     * Возвращает ту, с помощью которой удалось перечислить файлы в архиве.
-     *
-     * @param zipFile       zip-архив
-     * @return              Кодировка, подходящая для открытия
-     * @throws IOException  Если ничего не нашлось/ошибка открытия файла
-     */
-    public static Charset detectZipEncoding(Path zipFile) throws IOException {
-        // Некорректные для имени файлов символы
-        String incorrectCharacters[] = { "\"", "*", ":", "<", ">", "?", "|" };
-        // Получаем все возможные кодировки
-        LinkedHashMap<String, Charset> allCharsets = new LinkedHashMap<>();
-        // Вставляем в начало самые вероятные - это киррилица DOS, текущая и кириллица Windows
-        allCharsets.put("ru-dos", Charset.forName("CP866"));
-        allCharsets.put("current-system", Charset.defaultCharset());
-        allCharsets.put("ru-win", Charset.forName("WINDOWS-1251"));
-        allCharsets.put("utf8_ru", Charset.forName("UTF-8"));
-        // Далее по списку вставляем вообще все доступные комбинации
-        allCharsets.putAll(Charset.availableCharsets());
-        // А теперь пробуем перечислить все файлы с данными кодировками
-        for (Map.Entry<String, Charset> probe : allCharsets.entrySet()) {
-            encodeTry:
-            {
-                try (ZipInputStream zip = new ZipInputStream(new BufferedInputStream(Files.newInputStream(zipFile), 4096), probe.getValue())) {
-                    // Прокручиваем архив
-                    ZipEntry compressed;
-                    while ((compressed = zip.getNextEntry()) != null) {
-                        for (String item : incorrectCharacters) {
-                            if (compressed.getName().contains(item)) {
-                                // Если имя файла содержит неверные символы - сбрасываем
-                                zip.closeEntry();
-                                break encodeTry;
-                            }
-                        }
-                        zip.closeEntry();
-                    }
-                } catch (IllegalArgumentException ignore) {
-                    // Все исключения мужественно игнорируем. Почти все
-                    continue;
-                }
-                return probe.getValue();
-            }
-        }
-
-        // Если ничего не нашли
-        throw new IOException("Unable detect ZIP file encoding");
-    }
-
-    /**
      * Устанавливает дату и время модификации вышестоящего каталога либо архива.
      *
      * @param file Каталог либо файл
@@ -239,7 +240,7 @@ public class fileChangeStatistic {
 
         // Прочие файлы, статистика
         outStat.format("Other files modification date count:\n");
-        for (Map.Entry<String, Integer> stat: getAllFilesModStatistic().entrySet()) {
+        for (Map.Entry<String, Integer> stat : getAllFilesModStatistic().entrySet()) {
             outStat.format("-- %s - %d\n", stat.getKey(), stat.getValue());
         }
     }
@@ -247,7 +248,7 @@ public class fileChangeStatistic {
     /**
      * Генерация статистики по файлам, даты группируются в точности до минуты
      *
-     * @return  Статистика
+     * @return Статистика
      */
     public TreeMap<String, Integer> getAllFilesModStatistic() {
         boolean found;

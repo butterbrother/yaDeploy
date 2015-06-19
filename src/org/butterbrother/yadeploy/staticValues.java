@@ -6,7 +6,7 @@ package org.butterbrother.yadeploy;
  */
 public interface staticValues {
     // Версия приложения
-    String yaDeployVersion = "0.0.1a";
+    String yaDeployVersion = "0.1.0a";
     /*
      * Режимы работы
      */
@@ -21,13 +21,14 @@ public interface staticValues {
      */
     int EXIT_NORMAL = 0;                // Нормальное завершение
     int EXIT_CONFIG_ERROR = 1;          // Ошибка чтения и обработки файла конфигурации
-    int EXIT_BACKUP_CHECK_ERROR = 2;    // Ошибка при проверке на возможность бекапа
-    int EXIT_BACKUP_ERROR = 3;          // Ошибка выполнения бекапа
-    int EXIT_INSTALL_CHECK_ERROR = 4;   // Ошибка при проверке на возможность установки
-    int EXIT_INSTALL_ERROR = 5;         // Ошибка выполнения установки
-    int EXIT_GENERAL_ERROR = 10;        // Общая ошибка
-    int EXIT_RESTORE_CHECK_ERROR = 6;   // Ошибка при проверке на возможность восстановления
-    int EXIT_RESTORE_ERROR = 7;         // Ошибка при восстановлении
+    int EXIT_GENERAL_ERROR = 2;         // Общая ошибка
+    int EXIT_BACKUP_CHECK_ERROR = 3;    // Ошибка при проверке на возможность бекапа
+    int EXIT_BACKUP_ERROR = 4;          // Ошибка выполнения бекапа
+    int EXIT_INSTALL_CHECK_ERROR = 5;   // Ошибка при проверке на возможность установки
+    int EXIT_INSTALL_ERROR = 6;         // Ошибка выполнения установки
+    int EXIT_RESTORE_CHECK_ERROR = 7;   // Ошибка при проверке на возможность восстановления
+    int EXIT_RESTORE_ERROR = 8;         // Ошибка при восстановлении
+
 
     /*
      * Настройки в ini-файле
@@ -76,13 +77,13 @@ public interface staticValues {
             "Usage:",
             "java -jar yadeploy.jar [--help] [--debug] [--config file_name] work_mode [release/backup_name]",
             "Switches:",
-            "-h\t|\t--help\t\tShow this help",
-            "-d\t|\t--debug\t\tVerbose output",
-            "-c\t|\t--config\tfile_name\tUse another config file",
+            "-h | --help\t\tShow this help",
+            "-d | --debug\t\tVerbose output",
+            "-c | --config\tfile_name\tUse another config file",
             "Work modes:",
-            "b\t|\tbackup\t\tBackup current release",
-            "r\t|\trestore\t\tRestore previous release, if backed up",
-            "i\t|\tinstall\t\tUpdate (if exists) or install release",
+            "b | backup\t\tBackup current release",
+            "r | restore\t\tRestore previous release, if backed up",
+            "i | install\t\tUpdate (if exists) or install release",
             "Release:",
             "Numbers (if set regexp search mask), postfix (if backup or restore) or full file name.",
             "",
