@@ -1,0 +1,57 @@
+yaDeploy, v. 0.1.0a
+Small utility to deploy, update and backup servlets
+
+Usage:
+java -jar yadeploy.jar [--help] [--debug] [--config file_name] work_mode [releas
+e/backup_name]
+
+Switches:
+-h | --help                     Show this help
+-d | --debug                    Verbose output
+-c | --config   file_name       Use another config file
+
+Work modes:
+b | backup                      Backup current release
+r | restore                     Restore previous release, if backed up
+i | install                     Update (if exists) or install release
+
+Release:
+Numbers (if set regexp search mask), postfix (if backup or restore) or full file name.
+
+Config file - windows ini-file. Encoding - UTF-8. End line - no care.
+Default file name is "yadeploy.ini", place as folder same of application jar-file.
+
+Config structure:
+[main]
+temp = path to temporary directory. If not set - will be used system temporary
+       directory.
+
+[backup]
+path = path to backups directory. Must be specified.
+ignore = relative path to files/directories/masks which will be ignored during
+         backup. Separated by semicolon
+type = backup type. If zip (default) backup will be compressed to zip-archive.
+       Another param - plain directory.
+
+[deploy]
+path = path to work deploy directory. Must be specified.
+watch = relative path fo files/directories/mask which will be checked for
+        changes. The system will offer a choice - to use the new, or keep the
+        old file. Separated by semicolon
+ignore = relative path to files/directories/masks which will be ignored during
+         install or restore. Separated by semicolon
+delete = relative path to files/directories/masks which will be deleted during
+         install or restore.
+
+[releases]
+path = path to install archives or extracted directories. Must be specified.
+       System support only extracted directories or zip (war) files
+filter = mask is used during installation and recovery. This is the first
+         filter, the second - indicates the release (if specified on the
+         command line argument, or the filter is ignored)
+		 
+This project use:
+Apache Ant(tm) - http://ant.apache.org/
+Apache Commons IO(tm) - https://commons.apache.org/
+java-diff-utils - https://code.google.com/p/java-diff-utils/ (i backup this project into my repositories from Google Code(tm))
+Ini4J - http://ini4j.sourceforge.net/index.html

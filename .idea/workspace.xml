@@ -7,13 +7,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="88ea8851-0c48-47b9-954e-13fe960c0f7a" name="Default" comment="">
-      <change type="DELETED" beforePath="C:\Users\user\Documents\Java\yaDeploy\src\test.java" afterPath="" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/org/butterbrother/selectFSItem/dialogs.java" afterPath="$PROJECT_DIR$/src/org/butterbrother/selectFSItem/dialogs.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/encodings.xml" afterPath="$PROJECT_DIR$/.idea/encodings.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/org/butterbrother/yadeploy/fileChangeStatistic.java" afterPath="$PROJECT_DIR$/src/org/butterbrother/yadeploy/fileChangeStatistic.java" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/org/butterbrother/yadeploy/staticValues.java" afterPath="$PROJECT_DIR$/src/org/butterbrother/yadeploy/staticValues.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/org/butterbrother/yadeploy/targetedAction.java" afterPath="$PROJECT_DIR$/src/org/butterbrother/yadeploy/targetedAction.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
     </list>
     <ignored path="yaDeploy.iws" />
     <ignored path=".idea/workspace.xml" />
@@ -122,8 +116,8 @@
       <file leaf-file-name="staticValues.java" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/org/butterbrother/yadeploy/staticValues.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.8375">
-              <caret line="90" column="53" selection-start-line="90" selection-start-column="53" selection-end-line="90" selection-end-column="53" />
+            <state vertical-scroll-proportion="0.5090909">
+              <caret line="71" column="20" selection-start-line="71" selection-start-column="20" selection-end-line="71" selection-end-column="20" />
               <folding />
             </state>
           </provider>
@@ -930,8 +924,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/org/butterbrother/yadeploy/staticValues.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.8375">
-          <caret line="90" column="53" selection-start-line="90" selection-start-column="53" selection-end-line="90" selection-end-column="53" />
+        <state vertical-scroll-proportion="0.5090909">
+          <caret line="71" column="20" selection-start-line="71" selection-start-column="20" selection-end-line="71" selection-end-column="20" />
           <folding />
         </state>
       </provider>
