@@ -10,6 +10,7 @@
     <file url="file://$PROJECT_DIR$/src/org/butterbrother/yadeploy/Progress.java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/src/org/butterbrother/yadeploy/configStorage.java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/src/org/butterbrother/yadeploy/dirDiff.java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/src/org/butterbrother/yadeploy/fileChangeStatistic.java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/src/org/butterbrother/yadeploy/start.java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/src/org/butterbrother/yadeploy/staticValues.java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/src/org/butterbrother/yadeploy/targetedAction.java" charset="UTF-8" />

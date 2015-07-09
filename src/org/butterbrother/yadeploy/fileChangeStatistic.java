@@ -14,58 +14,58 @@ import java.util.zip.ZipFile;
 import java.util.zip.ZipInputStream;
 
 /**
- * Обсчёт статстики по файлам
+ * РћР±СЃС‡С‘С‚ СЃС‚Р°С‚СЃС‚РёРєРё РїРѕ С„Р°Р№Р»Р°Рј
  */
 public class fileChangeStatistic {
 
 
-    // Самый старый файл, имеет меньшее значение в мс., поэтому для сравнения с первым
-    // файлом число в мс. должно иметь максимально мозможное значение
+    // РЎР°РјС‹Р№ СЃС‚Р°СЂС‹Р№ С„Р°Р№Р», РёРјРµРµС‚ РјРµРЅСЊС€РµРµ Р·РЅР°С‡РµРЅРёРµ РІ РјСЃ., РїРѕСЌС‚РѕРјСѓ РґР»СЏ СЃСЂР°РІРЅРµРЅРёСЏ СЃ РїРµСЂРІС‹Рј
+    // С„Р°Р№Р»РѕРј С‡РёСЃР»Рѕ РІ РјСЃ. РґРѕР»Р¶РЅРѕ РёРјРµС‚СЊ РјР°РєСЃРёРјР°Р»СЊРЅРѕ РјРѕР·РјРѕР¶РЅРѕРµ Р·РЅР°С‡РµРЅРёРµ
     private long oldestFile = Long.MAX_VALUE;
-    // Самый новый файл. В противоположность - имеет наибольшее значение. Поэтому для
-    // сравнения с датой первого файла должен быть с минимально возможным значением
+    // РЎР°РјС‹Р№ РЅРѕРІС‹Р№ С„Р°Р№Р». Р’ РїСЂРѕС‚РёРІРѕРїРѕР»РѕР¶РЅРѕСЃС‚СЊ - РёРјРµРµС‚ РЅР°РёР±РѕР»СЊС€РµРµ Р·РЅР°С‡РµРЅРёРµ. РџРѕСЌС‚РѕРјСѓ РґР»СЏ
+    // СЃСЂР°РІРЅРµРЅРёСЏ СЃ РґР°С‚РѕР№ РїРµСЂРІРѕРіРѕ С„Р°Р№Р»Р° РґРѕР»Р¶РµРЅ Р±С‹С‚СЊ СЃ РјРёРЅРёРјР°Р»СЊРЅРѕ РІРѕР·РјРѕР¶РЅС‹Рј Р·РЅР°С‡РµРЅРёРµРј
     private long newestFile = 0;
-    // Самая распространённая дата модификации файлов, дата-число файлов
+    // РЎР°РјР°СЏ СЂР°СЃРїСЂРѕСЃС‚СЂР°РЅС‘РЅРЅР°СЏ РґР°С‚Р° РјРѕРґРёС„РёРєР°С†РёРё С„Р°Р№Р»РѕРІ, РґР°С‚Р°-С‡РёСЃР»Рѕ С„Р°Р№Р»РѕРІ
     private TreeMap<Long, Integer> mostModTime = new TreeMap<>();
-    // Дата модификации вышестоящего каталога либо архива
+    // Р”Р°С‚Р° РјРѕРґРёС„РёРєР°С†РёРё РІС‹С€РµСЃС‚РѕСЏС‰РµРіРѕ РєР°С‚Р°Р»РѕРіР° Р»РёР±Рѕ Р°СЂС…РёРІР°
     private long parentModTime = 0;
 
     public fileChangeStatistic() {
     }
 
     /**
-     * Определение кодировки zip-архива.
+     * РћРїСЂРµРґРµР»РµРЅРёРµ РєРѕРґРёСЂРѕРІРєРё zip-Р°СЂС…РёРІР°.
      * <p/>
-     * Выполняет банальный перебор по всем возможным кодировкам.
-     * Возвращает ту, с помощью которой удалось перечислить файлы в архиве.
+     * Р’С‹РїРѕР»РЅСЏРµС‚ Р±Р°РЅР°Р»СЊРЅС‹Р№ РїРµСЂРµР±РѕСЂ РїРѕ РІСЃРµРј РІРѕР·РјРѕР¶РЅС‹Рј РєРѕРґРёСЂРѕРІРєР°Рј.
+     * Р’РѕР·РІСЂР°С‰Р°РµС‚ С‚Сѓ, СЃ РїРѕРјРѕС‰СЊСЋ РєРѕС‚РѕСЂРѕР№ СѓРґР°Р»РѕСЃСЊ РїРµСЂРµС‡РёСЃР»РёС‚СЊ С„Р°Р№Р»С‹ РІ Р°СЂС…РёРІРµ.
      *
-     * @param zipFile zip-архив
-     * @return Кодировка, подходящая для открытия
-     * @throws IOException Если ничего не нашлось/ошибка открытия файла
+     * @param zipFile zip-Р°СЂС…РёРІ
+     * @return РљРѕРґРёСЂРѕРІРєР°, РїРѕРґС…РѕРґСЏС‰Р°СЏ РґР»СЏ РѕС‚РєСЂС‹С‚РёСЏ
+     * @throws IOException Р•СЃР»Рё РЅРёС‡РµРіРѕ РЅРµ РЅР°С€Р»РѕСЃСЊ/РѕС€РёР±РєР° РѕС‚РєСЂС‹С‚РёСЏ С„Р°Р№Р»Р°
      */
     public static Charset detectZipEncoding(Path zipFile) throws IOException {
-        // Некорректные для имени файлов символы
+        // РќРµРєРѕСЂСЂРµРєС‚РЅС‹Рµ РґР»СЏ РёРјРµРЅРё С„Р°Р№Р»РѕРІ СЃРёРјРІРѕР»С‹
         String incorrectCharacters[] = {"\"", "*", ":", "<", ">", "?", "|"};
-        // Получаем все возможные кодировки
+        // РџРѕР»СѓС‡Р°РµРј РІСЃРµ РІРѕР·РјРѕР¶РЅС‹Рµ РєРѕРґРёСЂРѕРІРєРё
         LinkedHashMap<String, Charset> allCharsets = new LinkedHashMap<>();
-        // Вставляем в начало самые вероятные - это киррилица DOS, текущая и кириллица Windows
+        // Р’СЃС‚Р°РІР»СЏРµРј РІ РЅР°С‡Р°Р»Рѕ СЃР°РјС‹Рµ РІРµСЂРѕСЏС‚РЅС‹Рµ - СЌС‚Рѕ РєРёСЂСЂРёР»РёС†Р° DOS, С‚РµРєСѓС‰Р°СЏ Рё РєРёСЂРёР»Р»РёС†Р° Windows
         allCharsets.put("ru-dos", Charset.forName("CP866"));
         allCharsets.put("current-system", Charset.defaultCharset());
         allCharsets.put("ru-win", Charset.forName("WINDOWS-1251"));
         allCharsets.put("utf8_ru", Charset.forName("UTF-8"));
-        // Далее по списку вставляем вообще все доступные комбинации
+        // Р”Р°Р»РµРµ РїРѕ СЃРїРёСЃРєСѓ РІСЃС‚Р°РІР»СЏРµРј РІРѕРѕР±С‰Рµ РІСЃРµ РґРѕСЃС‚СѓРїРЅС‹Рµ РєРѕРјР±РёРЅР°С†РёРё
         allCharsets.putAll(Charset.availableCharsets());
-        // А теперь пробуем перечислить все файлы с данными кодировками
+        // Рђ С‚РµРїРµСЂСЊ РїСЂРѕР±СѓРµРј РїРµСЂРµС‡РёСЃР»РёС‚СЊ РІСЃРµ С„Р°Р№Р»С‹ СЃ РґР°РЅРЅС‹РјРё РєРѕРґРёСЂРѕРІРєР°РјРё
         for (Map.Entry<String, Charset> probe : allCharsets.entrySet()) {
             encodeTry:
             {
                 try (ZipInputStream zip = new ZipInputStream(new BufferedInputStream(Files.newInputStream(zipFile), 4096), probe.getValue())) {
-                    // Прокручиваем архив
+                    // РџСЂРѕРєСЂСѓС‡РёРІР°РµРј Р°СЂС…РёРІ
                     ZipEntry compressed;
                     while ((compressed = zip.getNextEntry()) != null) {
                         for (String item : incorrectCharacters) {
                             if (compressed.getName().contains(item)) {
-                                // Если имя файла содержит неверные символы - сбрасываем
+                                // Р•СЃР»Рё РёРјСЏ С„Р°Р№Р»Р° СЃРѕРґРµСЂР¶РёС‚ РЅРµРІРµСЂРЅС‹Рµ СЃРёРјРІРѕР»С‹ - СЃР±СЂР°СЃС‹РІР°РµРј
                                 zip.closeEntry();
                                 break encodeTry;
                             }
@@ -73,30 +73,30 @@ public class fileChangeStatistic {
                         zip.closeEntry();
                     }
                 } catch (IllegalArgumentException ignore) {
-                    // Все исключения мужественно игнорируем. Почти все
+                    // Р’СЃРµ РёСЃРєР»СЋС‡РµРЅРёСЏ РјСѓР¶РµСЃС‚РІРµРЅРЅРѕ РёРіРЅРѕСЂРёСЂСѓРµРј. РџРѕС‡С‚Рё РІСЃРµ
                     continue;
                 }
                 return probe.getValue();
             }
         }
 
-        // Если ничего не нашли
+        // Р•СЃР»Рё РЅРёС‡РµРіРѕ РЅРµ РЅР°С€Р»Рё
         throw new IOException("Unable detect ZIP file encoding");
     }
 
     /**
-     * Добавление файла в статистику
+     * Р”РѕР±Р°РІР»РµРЅРёРµ С„Р°Р№Р»Р° РІ СЃС‚Р°С‚РёСЃС‚РёРєСѓ
      *
-     * @param fileModTime Дата модификации в мс.
+     * @param fileModTime Р”Р°С‚Р° РјРѕРґРёС„РёРєР°С†РёРё РІ РјСЃ.
      */
     public void addFile(long fileModTime) {
-        if (fileModTime <= 0) return;   // Исключаем файлы, для которых не удалось получить дату модификации
+        if (fileModTime <= 0) return;   // РСЃРєР»СЋС‡Р°РµРј С„Р°Р№Р»С‹, РґР»СЏ РєРѕС‚РѕСЂС‹С… РЅРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ РґР°С‚Сѓ РјРѕРґРёС„РёРєР°С†РёРё
 
-        // Ищем в дереве дат
+        // РС‰РµРј РІ РґРµСЂРµРІРµ РґР°С‚
         boolean found = false;
         for (Map.Entry<Long, Integer> item : mostModTime.entrySet()) {
             if (item.getKey() == fileModTime) {
-                // Если находим - прибавляем в статистике
+                // Р•СЃР»Рё РЅР°С…РѕРґРёРј - РїСЂРёР±Р°РІР»СЏРµРј РІ СЃС‚Р°С‚РёСЃС‚РёРєРµ
                 item.setValue(item.getValue() + 1);
                 found = true;
             }
@@ -104,7 +104,7 @@ public class fileChangeStatistic {
         if (!found)
             mostModTime.put(fileModTime, 1);
 
-        // Сравниваем с текущими датами
+        // РЎСЂР°РІРЅРёРІР°РµРј СЃ С‚РµРєСѓС‰РёРјРё РґР°С‚Р°РјРё
         if (fileModTime > newestFile)
             newestFile = fileModTime;
         if (fileModTime < oldestFile)
@@ -112,35 +112,35 @@ public class fileChangeStatistic {
     }
 
     /**
-     * Добавление файла в статистику
+     * Р”РѕР±Р°РІР»РµРЅРёРµ С„Р°Р№Р»Р° РІ СЃС‚Р°С‚РёСЃС‚РёРєСѓ
      *
-     * @param file Файл
-     * @throws IOException Ошибка при получении даты-времени модификации
+     * @param file Р¤Р°Р№Р»
+     * @throws IOException РћС€РёР±РєР° РїСЂРё РїРѕР»СѓС‡РµРЅРёРё РґР°С‚С‹-РІСЂРµРјРµРЅРё РјРѕРґРёС„РёРєР°С†РёРё
      */
     public void addFile(Path file) throws IOException {
         addFile(Files.getLastModifiedTime(file).toMillis());
     }
 
     /**
-     * Устанавливает дату и время модификации вышестоящего каталога либо архива.
+     * РЈСЃС‚Р°РЅР°РІР»РёРІР°РµС‚ РґР°С‚Сѓ Рё РІСЂРµРјСЏ РјРѕРґРёС„РёРєР°С†РёРё РІС‹С€РµСЃС‚РѕСЏС‰РµРіРѕ РєР°С‚Р°Р»РѕРіР° Р»РёР±Рѕ Р°СЂС…РёРІР°.
      *
-     * @param fileModTime Дата модификации в мс.
+     * @param fileModTime Р”Р°С‚Р° РјРѕРґРёС„РёРєР°С†РёРё РІ РјСЃ.
      */
     public void setParentModTime(long fileModTime) {
         parentModTime = fileModTime;
     }
 
     /**
-     * Обсчитывает статистику для каталога целиком, ключая сам каталог,
-     * подкаталоги и подфайлы. Метод не обнуляет текущую статистику
+     * РћР±СЃС‡РёС‚С‹РІР°РµС‚ СЃС‚Р°С‚РёСЃС‚РёРєСѓ РґР»СЏ РєР°С‚Р°Р»РѕРіР° С†РµР»РёРєРѕРј, РєР»СЋС‡Р°СЏ СЃР°Рј РєР°С‚Р°Р»РѕРі,
+     * РїРѕРґРєР°С‚Р°Р»РѕРіРё Рё РїРѕРґС„Р°Р№Р»С‹. РњРµС‚РѕРґ РЅРµ РѕР±РЅСѓР»СЏРµС‚ С‚РµРєСѓС‰СѓСЋ СЃС‚Р°С‚РёСЃС‚РёРєСѓ
      *
-     * @param file    Файл
-     * @param ignored Список исключений
-     * @param deleted Список удаляемых файлов
-     * @throws IOException Ошибка ввода-вывода при рассчёте
+     * @param file    Р¤Р°Р№Р»
+     * @param ignored РЎРїРёСЃРѕРє РёСЃРєР»СЋС‡РµРЅРёР№
+     * @param deleted РЎРїРёСЃРѕРє СѓРґР°Р»СЏРµРјС‹С… С„Р°Р№Р»РѕРІ
+     * @throws IOException РћС€РёР±РєР° РІРІРѕРґР°-РІС‹РІРѕРґР° РїСЂРё СЂР°СЃСЃС‡С‘С‚Рµ
      */
     public void calculatePath(Path file, String[] ignored, String[] deleted) throws IOException {
-        // Суммарный массив для рассчёта статистики
+        // РЎСѓРјРјР°СЂРЅС‹Р№ РјР°СЃСЃРёРІ РґР»СЏ СЂР°СЃСЃС‡С‘С‚Р° СЃС‚Р°С‚РёСЃС‚РёРєРё
         LinkedList<String> comboIgnoreList = new LinkedList<>();
         if (ignored != null && ignored.length > 0)
             comboIgnoreList.addAll(Arrays.asList(ignored));
@@ -150,11 +150,11 @@ public class fileChangeStatistic {
         String comboIgnore[] = comboIgnoreList.toArray(new String[comboIgnoreList.size()]);
 
 
-        // Обрабатываем статистику в каталоге
+        // РћР±СЂР°Р±Р°С‚С‹РІР°РµРј СЃС‚Р°С‚РёСЃС‚РёРєСѓ РІ РєР°С‚Р°Р»РѕРіРµ
         if (Files.exists(file)) {
-            // Для каталога отдельно
+            // Р”Р»СЏ РєР°С‚Р°Р»РѕРіР° РѕС‚РґРµР»СЊРЅРѕ
             setParentModTime(file);
-            // И отдельно для...
+            // Р РѕС‚РґРµР»СЊРЅРѕ РґР»СЏ...
             DirectoryScanner deployList = new DirectoryScanner();
             deployList.setBasedir(file.toString());
             if (comboIgnore.length > 0)
@@ -165,14 +165,14 @@ public class fileChangeStatistic {
                     "Calculating files modification time statistic in " + file.toString(),
                     deployList.getIncludedDirsCount() + deployList.getIncludedFilesCount())
             ) {
-                // ...Каталогов
+                // ...РљР°С‚Р°Р»РѕРіРѕРІ
                 for (String item : deployList.getIncludedDirectories()) {
                     calculateProgress.inc();
-                    if (item.isEmpty()) continue; // Пропускаем корневой каталог
+                    if (item.isEmpty()) continue; // РџСЂРѕРїСѓСЃРєР°РµРј РєРѕСЂРЅРµРІРѕР№ РєР°С‚Р°Р»РѕРі
                     Path includedDir = Paths.get(file.toString(), item);
                     addFile(includedDir);
                 }
-                // ...и файлов
+                // ...Рё С„Р°Р№Р»РѕРІ
                 for (String item : deployList.getIncludedFiles()) {
                     calculateProgress.inc();
                     Path includedFile = Paths.get(file.toString(), item);
@@ -183,18 +183,18 @@ public class fileChangeStatistic {
     }
 
     /**
-     * Обсчитывает статистику для zip-архива целиком, включая сам zip-архив
-     * Метод не обнуляет текущую статистику.
+     * РћР±СЃС‡РёС‚С‹РІР°РµС‚ СЃС‚Р°С‚РёСЃС‚РёРєСѓ РґР»СЏ zip-Р°СЂС…РёРІР° С†РµР»РёРєРѕРј, РІРєР»СЋС‡Р°СЏ СЃР°Рј zip-Р°СЂС…РёРІ
+     * РњРµС‚РѕРґ РЅРµ РѕР±РЅСѓР»СЏРµС‚ С‚РµРєСѓС‰СѓСЋ СЃС‚Р°С‚РёСЃС‚РёРєСѓ.
      *
-     * @param zipFile zip-архив
-     * @throws IOException Ошибка ввода-вывода при рассчёте
+     * @param zipFile zip-Р°СЂС…РёРІ
+     * @throws IOException РћС€РёР±РєР° РІРІРѕРґР°-РІС‹РІРѕРґР° РїСЂРё СЂР°СЃСЃС‡С‘С‚Рµ
      */
     public void calculateZip(Path zipFile) throws IOException {
         setParentModTime(zipFile);
 
-        // Определяем кодировку файла
+        // РћРїСЂРµРґРµР»СЏРµРј РєРѕРґРёСЂРѕРІРєСѓ С„Р°Р№Р»Р°
         Charset zipEncoding = detectZipEncoding(zipFile);
-        // Получаем список элементов в архиве
+        // РџРѕР»СѓС‡Р°РµРј СЃРїРёСЃРѕРє СЌР»РµРјРµРЅС‚РѕРІ РІ Р°СЂС…РёРІРµ
         int zipEntriesCount;
         try (ZipFile tstFile = new ZipFile(zipFile.toFile(), zipEncoding)) {
             zipEntriesCount = tstFile.size() != 0 ? tstFile.size() : 100000;
@@ -208,9 +208,9 @@ public class fileChangeStatistic {
                 ZipEntry archive;
                 while ((archive = zip.getNextEntry()) != null) {
                     calculateProgress.inc();
-                    // Обрабатываем статистические данные
+                    // РћР±СЂР°Р±Р°С‚С‹РІР°РµРј СЃС‚Р°С‚РёСЃС‚РёС‡РµСЃРєРёРµ РґР°РЅРЅС‹Рµ
                     addFile(archive.getTime());
-                    // Прокручиваем архив далее
+                    // РџСЂРѕРєСЂСѓС‡РёРІР°РµРј Р°СЂС…РёРІ РґР°Р»РµРµ
                     zip.closeEntry();
                 }
             }
@@ -218,22 +218,22 @@ public class fileChangeStatistic {
     }
 
     /**
-     * Устанавливает дату и время модификации вышестоящего каталога либо архива.
+     * РЈСЃС‚Р°РЅР°РІР»РёРІР°РµС‚ РґР°С‚Сѓ Рё РІСЂРµРјСЏ РјРѕРґРёС„РёРєР°С†РёРё РІС‹С€РµСЃС‚РѕСЏС‰РµРіРѕ РєР°С‚Р°Р»РѕРіР° Р»РёР±Рѕ Р°СЂС…РёРІР°.
      *
-     * @param file Каталог либо файл
-     * @throws IOException Ошибка при получении даты-времени модификации
+     * @param file РљР°С‚Р°Р»РѕРі Р»РёР±Рѕ С„Р°Р№Р»
+     * @throws IOException РћС€РёР±РєР° РїСЂРё РїРѕР»СѓС‡РµРЅРёРё РґР°С‚С‹-РІСЂРµРјРµРЅРё РјРѕРґРёС„РёРєР°С†РёРё
      */
     public void setParentModTime(Path file) throws IOException {
         setParentModTime(Files.getLastModifiedTime(file).toMillis());
     }
 
     /**
-     * Отображение статистики по файлам
+     * РћС‚РѕР±СЂР°Р¶РµРЅРёРµ СЃС‚Р°С‚РёСЃС‚РёРєРё РїРѕ С„Р°Р№Р»Р°Рј
      */
     public void showStatistic() {
         Formatter outStat = new Formatter(System.out);
 
-        // Дата модификации архива-вышестоящего каталога
+        // Р”Р°С‚Р° РјРѕРґРёС„РёРєР°С†РёРё Р°СЂС…РёРІР°-РІС‹С€РµСЃС‚РѕСЏС‰РµРіРѕ РєР°С‚Р°Р»РѕРіР°
         outStat.format("Container modification date: ");
         if (this.parentModTime <= 0) {
             outStat.format("not available\n");
@@ -243,7 +243,7 @@ public class fileChangeStatistic {
             outStat.format("%TY-%<Tm-%<Td %<TH:%<TM\n", parentTime);
         }
 
-        // Самый старый файл
+        // РЎР°РјС‹Р№ СЃС‚Р°СЂС‹Р№ С„Р°Р№Р»
         outStat.format("Oldest file modification date: ");
         if (this.oldestFile == Long.MAX_VALUE || this.oldestFile <= 0) {
             outStat.format("not available\n");
@@ -253,7 +253,7 @@ public class fileChangeStatistic {
             outStat.format("%TY-%<Tm-%<Td %<TH:%<TM\n", oldestFile);
         }
 
-        // Самый новый файл
+        // РЎР°РјС‹Р№ РЅРѕРІС‹Р№ С„Р°Р№Р»
         outStat.format("Newest file modification date: ");
         if (this.newestFile <= 0) {
             outStat.format("not available\n");
@@ -263,7 +263,7 @@ public class fileChangeStatistic {
             outStat.format("%TY-%<Tm-%<Td %<TH:%<TM\n", newestFile);
         }
 
-        // Прочие файлы, статистика
+        // РџСЂРѕС‡РёРµ С„Р°Р№Р»С‹, СЃС‚Р°С‚РёСЃС‚РёРєР°
         outStat.format("Other files modification date count:\n");
         for (Map.Entry<String, Integer> stat : getAllFilesModStatistic().entrySet()) {
             outStat.format("-- %s - %d\n", stat.getKey(), stat.getValue());
@@ -271,34 +271,34 @@ public class fileChangeStatistic {
     }
 
     /**
-     * Генерация статистики по файлам, даты группируются в точности до минуты
+     * Р“РµРЅРµСЂР°С†РёСЏ СЃС‚Р°С‚РёСЃС‚РёРєРё РїРѕ С„Р°Р№Р»Р°Рј, РґР°С‚С‹ РіСЂСѓРїРїРёСЂСѓСЋС‚СЃСЏ РІ С‚РѕС‡РЅРѕСЃС‚Рё РґРѕ РјРёРЅСѓС‚С‹
      *
-     * @return Статистика
+     * @return РЎС‚Р°С‚РёСЃС‚РёРєР°
      */
     public TreeMap<String, Integer> getAllFilesModStatistic() {
         boolean found;
         TreeMap<String, Integer> result = new TreeMap<>();
-        // Конвертируем целочисленные даты в даты, затем в форматированные строки
-        // Попутно сравниваем строки с уже имеющимися в результате
+        // РљРѕРЅРІРµСЂС‚РёСЂСѓРµРј С†РµР»РѕС‡РёСЃР»РµРЅРЅС‹Рµ РґР°С‚С‹ РІ РґР°С‚С‹, Р·Р°С‚РµРј РІ С„РѕСЂРјР°С‚РёСЂРѕРІР°РЅРЅС‹Рµ СЃС‚СЂРѕРєРё
+        // РџРѕРїСѓС‚РЅРѕ СЃСЂР°РІРЅРёРІР°РµРј СЃС‚СЂРѕРєРё СЃ СѓР¶Рµ РёРјРµСЋС‰РёРјРёСЃСЏ РІ СЂРµР·СѓР»СЊС‚Р°С‚Рµ
         for (Map.Entry<Long, Integer> statValue : mostModTime.entrySet()) {
-            // Преобразуем в календарь
+            // РџСЂРµРѕР±СЂР°Р·СѓРµРј РІ РєР°Р»РµРЅРґР°СЂСЊ
             Calendar dateTime = Calendar.getInstance();
             dateTime.setTimeInMillis(statValue.getKey());
-            // Затем в строку, усекаем дату до минуты
+            // Р—Р°С‚РµРј РІ СЃС‚СЂРѕРєСѓ, СѓСЃРµРєР°РµРј РґР°С‚Сѓ РґРѕ РјРёРЅСѓС‚С‹
             String formattedDate = new Formatter().format("%TY-%<Tm-%<Td %<TH:%<TM", dateTime).toString();
 
-            // Далее ищем в результатах
+            // Р”Р°Р»РµРµ РёС‰РµРј РІ СЂРµР·СѓР»СЊС‚Р°С‚Р°С…
             found = false;
             for (Map.Entry<String, Integer> comp : result.entrySet()) {
                 if (comp.getKey().equals(formattedDate)) {
-                    // Если уже есть - складываем с имеющимся
+                    // Р•СЃР»Рё СѓР¶Рµ РµСЃС‚СЊ - СЃРєР»Р°РґС‹РІР°РµРј СЃ РёРјРµСЋС‰РёРјСЃСЏ
                     comp.setValue(comp.getValue() + statValue.getValue());
                     found = true;
                     break;
                 }
             }
 
-            // Иначе добавляем новую запись
+            // РРЅР°С‡Рµ РґРѕР±Р°РІР»СЏРµРј РЅРѕРІСѓСЋ Р·Р°РїРёСЃСЊ
             if (!found)
                 result.put(formattedDate, statValue.getValue());
         }
