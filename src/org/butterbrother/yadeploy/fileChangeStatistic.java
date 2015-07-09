@@ -10,12 +10,15 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 import java.util.zip.ZipInputStream;
 
 /**
  * Обсчёт статстики по файлам
  */
 public class fileChangeStatistic {
+
+
     // Самый старый файл, имеет меньшее значение в мс., поэтому для сравнения с первым
     // файлом число в мс. должно иметь максимально мозможное значение
     private long oldestFile = Long.MAX_VALUE;
@@ -146,6 +149,7 @@ public class fileChangeStatistic {
 
         String comboIgnore[] = comboIgnoreList.toArray(new String[comboIgnoreList.size()]);
 
+
         // Обрабатываем статистику в каталоге
         if (Files.exists(file)) {
             // Для каталога отдельно
@@ -156,16 +160,24 @@ public class fileChangeStatistic {
             if (comboIgnore.length > 0)
                 deployList.setExcludes(comboIgnore);
             deployList.scan();
-            // ...Каталогов
-            for (String item : deployList.getIncludedDirectories()) {
-                if (item.isEmpty()) continue; // Пропускаем корневой каталог
-                Path includedDir = Paths.get(file.toString(), item);
-                addFile(includedDir);
-            }
-            // ...и файлов
-            for (String item : deployList.getIncludedFiles()) {
-                Path includedFile = Paths.get(file.toString(), item);
-                addFile(includedFile);
+
+            try (Progress calculateProgress = new Progress(
+                    "Calculating files modification time statistic in " + file.toString(),
+                    deployList.getIncludedDirsCount() + deployList.getIncludedFilesCount())
+            ) {
+                // ...Каталогов
+                for (String item : deployList.getIncludedDirectories()) {
+                    calculateProgress.inc();
+                    if (item.isEmpty()) continue; // Пропускаем корневой каталог
+                    Path includedDir = Paths.get(file.toString(), item);
+                    addFile(includedDir);
+                }
+                // ...и файлов
+                for (String item : deployList.getIncludedFiles()) {
+                    calculateProgress.inc();
+                    Path includedFile = Paths.get(file.toString(), item);
+                    addFile(includedFile);
+                }
             }
         }
     }
@@ -180,14 +192,27 @@ public class fileChangeStatistic {
     public void calculateZip(Path zipFile) throws IOException {
         setParentModTime(zipFile);
 
+        // Определяем кодировку файла
         Charset zipEncoding = detectZipEncoding(zipFile);
-        try (ZipInputStream zip = new ZipInputStream(new BufferedInputStream((Files.newInputStream(zipFile)), 4096), zipEncoding)) {
-            ZipEntry archive;
-            while ((archive = zip.getNextEntry()) != null) {
-                // Обрабатываем статистические данные
-                addFile(archive.getTime());
-                // Прокручиваем архив далее
-                zip.closeEntry();
+        // Получаем список элементов в архиве
+        int zipEntriesCount;
+        try (ZipFile tstFile = new ZipFile(zipFile.toFile(), zipEncoding)) {
+            zipEntriesCount = tstFile.size() != 0 ? tstFile.size() : 100000;
+        }
+
+        try (Progress calculateProgress = new Progress(
+                "Calculating files modification time statistic in " + zipFile.toString(),
+                zipEntriesCount)
+        ) {
+            try (ZipInputStream zip = new ZipInputStream(new BufferedInputStream((Files.newInputStream(zipFile)), 4096), zipEncoding)) {
+                ZipEntry archive;
+                while ((archive = zip.getNextEntry()) != null) {
+                    calculateProgress.inc();
+                    // Обрабатываем статистические данные
+                    addFile(archive.getTime());
+                    // Прокручиваем архив далее
+                    zip.closeEntry();
+                }
             }
         }
     }

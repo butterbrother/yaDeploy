@@ -12,9 +12,11 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.FileTime;
 import java.util.*;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
@@ -88,33 +90,39 @@ public class targetedAction implements staticValues {
                 int length;
 
                 // Создаём структуру каталогов
-                for (String dir : dirs) {
-                    if (dir.isEmpty()) continue;    // Пропускаем добавление корневого каталога - имя архива
-                    ZipEntry zipped = new ZipEntry(dir + "/");
-                    // Получаю дату-время модификации
-                    FileTime modTime = Files.getLastModifiedTime(Paths.get(direction.getSourceFullName(), dir));
-                    System.out.println("Create dir in ZIP: " + zipped.getName());
-                    zipped.setTime(modTime.toMillis());
-                    zipFile.putNextEntry(zipped);
-                    zipFile.closeEntry();
+                System.out.println();
+                try (Progress dirCreatingProgress = new Progress("Creating ZIP directory structure:", dirs.length)) {
+                    for (String dir : dirs) {
+                        // Отображаем бегунок
+                        dirCreatingProgress.inc();
+                        if (dir.isEmpty()) continue;    // Пропускаем добавление корневого каталога - имя архива
+                        ZipEntry zipped = new ZipEntry(dir + "/");
+                        // Получаю дату-время модификации
+                        FileTime modTime = Files.getLastModifiedTime(Paths.get(direction.getSourceFullName(), dir));
+                        zipped.setTime(modTime.toMillis());
+                        zipFile.putNextEntry(zipped);
+                        zipFile.closeEntry();
+                    }
                 }
 
                 // Сжимаем файлы
-                for (String file : files) {
-                    ZipEntry zipped = new ZipEntry(file);
-                    // Получаю дату-время модификации файла
-                    FileTime modTime = Files.getLastModifiedTime(Paths.get(direction.getSourceFullName(), file));
-                    zipped.setTime(modTime.toMillis());
-                    zipFile.putNextEntry(zipped);
-                    System.out.println("Compress file " + zipped.getName());
-                    try (BufferedInputStream inpDir = new BufferedInputStream(Files.newInputStream(Paths.get(direction.getSourceFullName(), file)), 4096)) {
-                        while ((length = inpDir.read(buffer)) > 0)
-                            zipFile.write(buffer, 0, length);
-                    } catch (IOException inpDirReadErr) {
-                        System.err.println("Unable compress file " + file + ": " + inpDirReadErr);
-                        if (debug) inpDirReadErr.printStackTrace();
+                try (Progress filesCompressProgress = new Progress("Compressing files:", files.length)) {
+                    for (String file : files) {
+                        // Отображение бегунка
+                        filesCompressProgress.inc();
+                        ZipEntry zipped = new ZipEntry(file);
+                        // Получаю дату-время модификации файла
+                        FileTime modTime = Files.getLastModifiedTime(Paths.get(direction.getSourceFullName(), file));
+                        zipped.setTime(modTime.toMillis());
+                        zipFile.putNextEntry(zipped);
+                        try (BufferedInputStream inpDir = new BufferedInputStream(Files.newInputStream(Paths.get(direction.getSourceFullName(), file)), 4096)) {
+                            while ((length = inpDir.read(buffer)) > 0)
+                                zipFile.write(buffer, 0, length);
+                        } catch (IOException inpDirReadErr) {
+                            filesCompressProgress.addError("Unable to compress file " + file + ": " + inpDirReadErr);
+                        }
+                        zipFile.closeEntry();
                     }
-                    zipFile.closeEntry();
                 }
             } catch (FileNotFoundException ignore) {
             } catch (IOException err) {
@@ -147,23 +155,35 @@ public class targetedAction implements staticValues {
             }
 
             // Воссоздаём структуру каталога деплоя
-            for (String dir : dirs) {
-                try {
-                    Files.createDirectories(Paths.get(backupDir.toString(), dir));
-                } catch (IOException ioErr) {
-                    System.err.println("Unable to create " + dir + ": " + ioErr);
+            try (Progress createDirsProgress = new Progress("Creating same directory structure", dirs.length)) {
+                for (String dir : dirs) {
+                    // Отображаем бегунок
+                    createDirsProgress.inc();
+
+                    // Создаём каталог
+                    try {
+                        Files.createDirectories(Paths.get(backupDir.toString(), dir));
+                    } catch (IOException ioErr) {
+                        createDirsProgress.addError("Unable to create dir " + dir + ": " + ioErr);
+                    }
                 }
             }
 
             // Последовательно копируем файлы
-            for (String file : files) {
-                try {
-                    Files.copy(
-                            Paths.get(direction.getSourceFullName(), file),
-                            Paths.get(backupDir.toString(), file)
-                    );
-                } catch (IOException ioErr) {
-                    System.err.println("Unable to backup " + file + ": " + ioErr);
+            try (Progress copyFilesProgress = new Progress("Backup files:", files.length)) {
+                for (String file : files) {
+                    // Отображаем бегунок
+                    copyFilesProgress.inc();
+                    try {
+                        Files.copy(
+                                Paths.get(direction.getSourceFullName(), file),
+                                Paths.get(backupDir.toString(), file),
+                                StandardCopyOption.REPLACE_EXISTING,
+                                StandardCopyOption.COPY_ATTRIBUTES
+                        );
+                    } catch (IOException ioErr) {
+                        copyFilesProgress.addError("Unable to backup " + file + ": " + ioErr);
+                    }
                 }
             }
         }
@@ -252,6 +272,13 @@ public class targetedAction implements staticValues {
             installRestoreError("error check difference", err, isInstall);
         }
 
+        // Предварительный бекап текущего приложения
+        try {
+            targetedAction.doBackup(settings, ticket.getBackupBeforeAllow(settings));
+        } catch (ActionNotAvailable info) {
+            System.err.println("Backup not available, skip.");
+        }
+
         // Если не существует - создаём
         try {
             if (Files.notExists(direction.getDestinationPath())) {
@@ -304,22 +331,26 @@ public class targetedAction implements staticValues {
         cleanList.setBasedir(deployPath.toFile());
         cleanList.setExcludes(ignoreList);
         cleanList.scan();
-        Formatter progressBar = new Formatter(System.out);
 
-        try {
-            // Удаляем файлы
-            for (String file : cleanList.getIncludedFiles()) {
-                progressBar.format("-- Delete file: %s\n", file);
-                Files.delete(Paths.get(deployPath.toString(), file));
+        try (Progress cleanupProgress = new Progress(
+                "Cleanup deploy directory " + deployPath.toString(),
+                cleanList.getIncludedDirsCount() + cleanList.getIncludedFilesCount())) {
+            try {
+                // Удаляем файлы
+                for (String file : cleanList.getIncludedFiles()) {
+                    cleanupProgress.inc();
+                    Files.delete(Paths.get(deployPath.toString(), file));
+                }
+                // Удаляем каталоги
+                for (String dir : cleanList.getIncludedDirectories()) {
+                    cleanupProgress.inc();
+                    if (dir.isEmpty()) continue;    // Пропускаем сам каталог деплоя
+                    FileUtils.deleteDirectory(Paths.get(deployPath.toString(), dir).toFile());
+                }
+            } catch (IOException err) {
+                cleanupProgress.close();
+                installRestoreError("unable to cleanup deploy", err, isInstall);
             }
-            // Удаляем каталоги
-            for (String dir : cleanList.getIncludedDirectories()) {
-                if (dir.isEmpty()) continue;    // Пропускаем сам каталог деплоя
-                progressBar.format("-- Delete directory: %s\n", dir);
-                FileUtils.deleteDirectory(Paths.get(deployPath.toString(), dir).toFile());
-            }
-        } catch (IOException err) {
-            installRestoreError("unable to cleanup deploy", err, isInstall);
         }
     }
 
@@ -552,19 +583,23 @@ public class targetedAction implements staticValues {
         DirectoryScanner copyFiles = new DirectoryScanner();
         copyFiles.setBasedir(source.toFile());
         copyFiles.scan();
-        Formatter progressBar = new Formatter(System.out);
-        progressBar.format("Copy directory recursively:\n");
-        // Воссоздаём структуру
-        for (String item : copyFiles.getIncludedDirectories()) {
-            progressBar.format("-- Create dir: %s\n", item);
-            Files.createDirectories(Paths.get(destination.toString(), item));
-        }
-        // Копируем файлы
-        for (String item : copyFiles.getIncludedFiles()) {
-            progressBar.format("-- Copy file: %s\n", item);
-            Path sourceFile = Paths.get(source.toString(), item);
-            Path targetFile = Paths.get(destination.toString(), item);
-            Files.copy(sourceFile, targetFile);
+        try (Progress copyProgress = new Progress(
+                "Copy directory recursively:",
+                copyFiles.getIncludedDirsCount() + copyFiles.getIncludedFilesCount())
+        ) {
+            // Воссоздаём структуру
+            for (String item : copyFiles.getIncludedDirectories()) {
+                copyProgress.inc();
+                if (item.isEmpty()) continue;
+                Files.createDirectories(Paths.get(destination.toString(), item));
+            }
+            // Копируем файлы
+            for (String item : copyFiles.getIncludedFiles()) {
+                copyProgress.inc();
+                Path sourceFile = Paths.get(source.toString(), item);
+                Path targetFile = Paths.get(destination.toString(), item);
+                Files.copy(sourceFile, targetFile);
+            }
         }
     }
 
@@ -576,37 +611,44 @@ public class targetedAction implements staticValues {
      * @throws IOException Ошибка при разорхивации
      */
     private static void extractArchive(Path zipFile, Path destinationDir) throws IOException {
+        // Определяем кодировку
         Charset zipEncoding = fileChangeStatistic.detectZipEncoding(zipFile);
-        Formatter progressBar = new Formatter(System.out);
+        // Предварительно получаем число элементов архива
+        int zipEntriesCount;
+        try (ZipFile cnt = new ZipFile(zipFile.toFile(), zipEncoding)) {
+            zipEntriesCount = cnt.size() > 0 ? cnt.size() : 10000;
+        }
+
+        // Распаковываем
         try (ZipInputStream zip = new ZipInputStream(new BufferedInputStream(Files.newInputStream(zipFile), 4096), zipEncoding)) {
-            progressBar.format("Extract archive:\n");
             int length;
             byte buffer[] = new byte[4096];
             ZipEntry archive;
-            while ((archive = zip.getNextEntry()) != null) {
-                if (archive.isDirectory()) {
-                    progressBar.format("-- Create dir: %s\n", archive.getName());
-                    // Создаём структуру каталогов
-                    Path extractedDir = Paths.get(destinationDir.toString(), archive.getName());
-                    Files.createDirectories(extractedDir);
-                } else {
-                    progressBar.format("-- Extract file: %s\n", archive.getName());
-                    // Распаковываем файл
-                    Path extractedFile = Paths.get(destinationDir.toString(), archive.getName());
-                    // Проверяем, существует ли родительский каталог. Воссоздаём структуру, если нет
-                    Path parrent = extractedFile.getParent();
-                    if (Files.notExists(parrent))
-                        Files.createDirectories(parrent);
-                    // Пишем сам файл
-                    try (BufferedOutputStream unzipped = new BufferedOutputStream(Files.newOutputStream(extractedFile), 4096)) {
-                        while ((length = (zip.read(buffer))) > 0)
-                            unzipped.write(buffer, 0, length);
+            try (Progress extractProgress = new Progress("Extract archive:", zipEntriesCount)) {
+                while ((archive = zip.getNextEntry()) != null) {
+                    extractProgress.inc();
+                    if (archive.isDirectory()) {
+                        // Создаём структуру каталогов
+                        Path extractedDir = Paths.get(destinationDir.toString(), archive.getName());
+                        Files.createDirectories(extractedDir);
+                    } else {
+                        // Распаковываем файл
+                        Path extractedFile = Paths.get(destinationDir.toString(), archive.getName());
+                        // Проверяем, существует ли родительский каталог. Воссоздаём структуру, если нет
+                        Path parrent = extractedFile.getParent();
+                        if (Files.notExists(parrent))
+                            Files.createDirectories(parrent);
+                        // Пишем сам файл
+                        try (BufferedOutputStream unzipped = new BufferedOutputStream(Files.newOutputStream(extractedFile), 4096)) {
+                            while ((length = (zip.read(buffer))) > 0)
+                                unzipped.write(buffer, 0, length);
+                        }
                     }
+                    zip.closeEntry();
                 }
-                zip.closeEntry();
             }
         }
-        progressBar.format("Extract complete\n");
+        System.out.println("Extract complete");
     }
 
     /**

@@ -31,24 +31,14 @@ public class start
             case WORK_MODE_DEPLOY:
                 // Разворачиваем деплой нового приложения
                 ticket installTicket = ticket.getInstallAllow(settings);
-                // Предварительный бекап текущего приложения
-                try {
-                    targetedAction.doBackup(settings, ticket.getBackupBeforeAllow(settings));
-                } catch (ActionNotAvailable info) {
-                    System.err.println("Backup not available, skip.");
-                }
+
                 // Установка
                 targetedAction.doDeploy(settings, installTicket, true);
                 break;
             case WORK_MODE_RESTORE:
                 // Восстанавливаем старую версию приложения
                 ticket recoveryTicket = ticket.getRestoreAllow(settings);
-                // Предварительный бекап текущего приложения
-                try {
-                    targetedAction.doBackup(settings, ticket.getBackupBeforeAllow(settings));
-                } catch (ActionNotAvailable info) {
-                    System.err.println("Backup not available, skip.");
-                }
+
                 // Восстановление
                 targetedAction.doDeploy(settings, recoveryTicket, false);
         }

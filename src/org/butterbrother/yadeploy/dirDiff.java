@@ -11,10 +11,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
+import java.nio.file.*;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Formatter;
@@ -94,14 +91,12 @@ public class dirDiff {
                         // Для текстовых файлов отображаем версию выбора с diff
                         if (isTextFile(install)) {
                             if (!needChangeTextFile(newFile, deployFile)) {  // Если менять файл не нужно - копируем его из деплоя
-                                Files.deleteIfExists(newFile);
-                                Files.copy(deployFile, newFile);
+                                Files.copy(deployFile, newFile, StandardCopyOption.COPY_ATTRIBUTES, StandardCopyOption.REPLACE_EXISTING);
                             }
                         } else {
                             // Для бинарных - только спрашиваем
                             if (!needChangeBinaryFile(install)) {
-                                Files.deleteIfExists(newFile);
-                                Files.copy(deployFile, newFile);
+                                Files.copy(deployFile, newFile, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES);
                             }
                         }
                     }
