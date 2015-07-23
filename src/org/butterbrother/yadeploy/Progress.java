@@ -23,10 +23,10 @@ public class Progress implements Closeable, AutoCloseable {
      * @param totalCount Общее число элементов (например, файлов)
      */
     public Progress(String progressName, int totalCount) {
-        String progressHeader = "  0 % ....  25 % ....  50 % ....  75 % .... 100 %";
+        String progressHeader = "| 000% .... 025% .... 050% .... 075% .... 100% |";
         System.out.println(progressName);
         System.out.println(progressHeader);
-        delayCount = totalCount / progressHeader.length();
+        delayCount = totalCount / (progressHeader.length() - 1);
     }
 
     /**
@@ -51,18 +51,20 @@ public class Progress implements Closeable, AutoCloseable {
 
     /**
      * Вызывается, когда операция выполнена.
-     * Отображает накопленные ошибки
+     * Отображает накопленные не критичные ошибки (если они были)
      * Так же выполняет сброс собственного состояния
      */
     @Override
     public void close() {
         System.out.println();
-        System.out.println("Errors:");
-        Formatter errShow = new Formatter(System.out);
-        for (String item : errorList) {
-            errShow.format("-- %s\n", item);
+        if (errorList.size() > 0) {
+            System.out.println("Errors:");
+            Formatter errShow = new Formatter(System.out);
+            for (String item : errorList) {
+                errShow.format("-- %s\n", item);
+            }
+            clock = 0;
+            errorList.clear();
         }
-        clock = 0;
-        errorList.clear();
     }
 }
