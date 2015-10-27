@@ -4,9 +4,9 @@
     <root id="archive" name="yaDeploy.jar">
       <element id="module-output" name="yaDeploy" />
       <element id="extracted-dir" path="$PROJECT_DIR$/lib/ant.jar" path-in-jar="/" />
-      <element id="extracted-dir" path="$PROJECT_DIR$/lib/ini4j-0.5.4.jar" path-in-jar="/" />
-      <element id="extracted-dir" path="$PROJECT_DIR$/lib/diffutils-1.2.1.jar" path-in-jar="/" />
       <element id="extracted-dir" path="$PROJECT_DIR$/lib/commons-io-2.4.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/lib/diffutils-1.2.1.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/lib/ini4j.jar" path-in-jar="/" />
     </root>
   </artifact>
 </component>

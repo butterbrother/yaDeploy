@@ -6,7 +6,7 @@ package org.butterbrother.yadeploy;
  */
 public interface staticValues {
     // Версия приложения
-    String yaDeployVersion = "0.1.0a";
+    String yaDeployVersion = "0.2.0b";
     /*
      * Режимы работы
      */

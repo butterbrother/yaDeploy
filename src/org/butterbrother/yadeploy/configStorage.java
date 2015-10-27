@@ -1,7 +1,6 @@
 package org.butterbrother.yadeploy;
 
 import org.ini4j.Ini;
-import org.ini4j.InvalidFileFormatException;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
@@ -133,8 +132,10 @@ public class configStorage
         // Считываем файл конфигурации
         try (BufferedReader realFile = Files.newBufferedReader(Paths.get(configFileName), Charset.forName("UTF-8"))) {
             return new configStorage(realFile, workMode, releaseName, debug);
-        } catch (InvalidFileFormatException err) {
-            exitConfigFileError(configFileName, "invalid file format", err, debug);
+            // Даунгрейд до ini4j-0.5.2, в новых версиях что-то поломали
+            // Я использую ini4j из debian репозитория
+        //} catch (InvalidFileFormatException err) {
+        //    exitConfigFileError(configFileName, "invalid file format", err, debug);
         } catch (NoSuchFileException err) {
             exitConfigFileError(configFileName, "file not found", err, debug);
         } catch (AccessDeniedException err) {
